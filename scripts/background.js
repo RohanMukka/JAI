@@ -9,10 +9,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function handleAutomation(jdText, sendResponse) {
   try {
-    const data = await chrome.storage.local.get(['apiKey', 'resumeContent']);
+    const data = await chrome.storage.local.get(['apiKey', 'apiKeys', 'resumeContent']);
     
-    // Call OpenAI
-    const latex = await callOpenAI(data.apiKey, data.resumeContent, jdText);
+    // Migration logic: Ensure we have an array of keys
+    let keys = data.apiKeys || [];
+    if (keys.length === 0 && data.apiKey) {
+        keys = [data.apiKey];
+    }
+    
+    if (keys.length === 0) {
+        throw new Error("No API Keys found. Please add them in Extension Options.");
+    }
+    
+    // Call Gemini with Key Rotation (Pass the whole array)
+    const latex = await callOpenAI(keys, data.resumeContent, jdText);
     
     // Save LaTeX for the Content Script to pick up
     await chrome.storage.local.set({ generatedLatex: latex });
@@ -46,72 +56,230 @@ async function handleAutomation(jdText, sendResponse) {
   }
 }
 
-async function callOpenAI(apiKey, resume, jd) {
+async function callOpenAI(apiKeys, resume, jd) {
+    // Ensure keys is always an array
+    const keys = Array.isArray(apiKeys) ? apiKeys : [apiKeys];
     // Renaming internally to generic call, but implementing for Gemini
     const systemInstruction = `
       You are an expert ATS Resume Optimizer and LaTeX Generator.
       
-      STRICT RULES:
-      1. DO NOT CHANGE THE LAYOUT. Use the provided Base Resume LaTeX code exact structure, spacing, sections, and macros.
-      2. ATS IS THE TOP PRIORITY. Optimize for keyword density and repetition across sections. ATS > human reviewer.
-      3. TAILOR THE RESUME FOR EVERY JOB. Use job-specific keywords and emphasis.
-      4. EXACTLY 3 PROJECTS. Select the top 3 most relevant projects from the base resume.
-      5. ADD ALL SKILLS FROM THE JD. Assume the candidate has them. No skill gatekeeping.
-      6. EXPERIENCE TITLE MUST MATCH ROLE. (e.g., Software Engineer -> Software Engineer Intern).
-      7. DATES MUST BE CORRECT. (Use the dates from the base resume, do not hallucinate).
-      8. NO PATCH INSTRUCTIONS. Output the FULL updated LaTeX code.
-      9. KEEP IT 1-PAGE AND DENSE. No whitespace expansion. No filler.
+      CRITICAL INSTRUCTIONS (THE 10 COMMANDMENTS):
+      1. DO NOT CHANGE THE LAYOUT: Use the provided Base Resume LaTeX code exact structure, spacing, macros.
+      2. COMMAND STRUCTURE:
+         - \resumeSubheading{Title}{Location}{Role}{Date} (4 arguments)
+         - \resumeProjectHeading{Title | Tech Stack | Links}{} (2 arguments)
+         - NEVER use '&' inside these arguments. Use '$|$'.
+      3. LIST MACROS (CRITICAL):
+         - ALWAYS start lists with \resumeItemListStart
+         - ALWAYS end lists with \resumeItemListEnd (NEVER use \end{itemize})
+      4. SANITY CHECK (CRITICAL):
+         - In Extracurriculars, NEVER write "\item \small{\item ...}".
+         - Correct: "\item \small{...}"
+      5. REWRITE SKILLS:
+         - Add ANY technical skill from the JD (e.g., PyTorch, AWS, Pandas) into "Languages" or "Frameworks".
+         - In "Concepts", list ONLY the top 5-6 most relevant concepts for the job.
+      6. DYNAMIC TITLES:
+         - Rewrite Experience Role to match JD (e.g., "Software Engineer Intern").
+      7. STRICT SINGLE-LINE BULLETS:
+         - Projects & Extracurriculars items must be SINGLE LINE.
+         - APPEND command "\\vspace{-3pt}" (backslashed) to the end of every item.
+         - Example: \resumeItem{Built X using Y.}\vspace{-3pt}
+      8. STRICT 1-PAGE LIMIT: Do not increase whitespace.
+      9. NO VISUAL CHANGES: Do not add \hrule or change colors.
+      10. Every sentence should be human written and should not sound like it is AI generated.
+      11. Once check all the above instructions and make sure the resume is ATS friendly and also good for humans to read.
     `;
 
     const prompt = `
+      CANDIDATE PROJECTS PORTFOLIO (SELECT 3 FROM HERE):
+      [... Same Portfolio as before, abbreviated here for clarity but full in code ...]
+      1. BEneFIT (Decentralized Fitness): Tech: Solidity, Ethereum, React, Node.js. Accountability app with staking. Best for: Blockchain, Full-stack, Security.
+      2. IPMS (Internship Management): Tech: React, Node, MongoDB. Workflow automation, approvals, dashboards. Best for: Full-stack, Enterprise, APIs.
+      3. Hospital Database (Patient Network): Tech: Java, JDBC, SQL. Relational DB design, complex queries. Best for: Backend, SQL, Database roles.
+      4. Diagnostic System (ML + Knowledge): Tech: Python, SWRL, Protégé. Hybrid AI (Rules + ML). Best for: AI/ML, Research.
+      5. SpendSmart (Expense Tracker): Tech: TypeScript, React. Finance app, responsive UI. Best for: Frontend, Product, React.
+      6. Portfolio Website: Tech: Next.js, TS. Deployment, UI/UX. Best for: Frontend, Web.
+      7. EEG Emotion Recognition: Tech: Python, ML, Signal Processing. Multiclass classification. Best for: Data Science, ML Research.
+      8. Multilingual Polarization Detection: Tech: Python, NLP. Text processing pipelines. Best for: NLP, AI.
+      9. FitPrep: Tech: JS, HTML, CSS. Fitness web app. Best for: General Web.
+      10. FeeAutomation: Tech: JS. Business automation. Best for: Scripts, Automation.
+
       JOB DESCRIPTION:
-      ${jd.substring(0, 6000)}
+      ${jd.substring(0, 8000)}
       
-      BASE RESUME LATEX CODE:
+      BASE RESUME LATEX:
       ${resume.substring(0, 15000)}
       
       TASK:
-      Rewrite the Base Resume LaTeX code to match the Job Description perfectly following the STRICT RULES above. 
-      - Select best 3 projects.
-      - Rewrite bullet points with JD keywords / action verbs.
-      - Add JD skills to the Skills section.
-      - Output ONLY the raw LaTeX code starting with \\documentclass.
+      Rewrite the Base Resume to match the Job Description perfectly, following the 10 COMMANDMENTS.
+      - IMPORTANT: Do NOT use '&' in \resumeProjectHeading. Use '$|$'.
+      - Ensure \resumeProjectHeading has exactly 2 sets of braces: {Content}{Date}.
     `;
 
-    // Gemini API Call
-    // Docs: https://ai.google.dev/models
-    // Switching to gemini-flash-latest (Standard Free Tier Model)
-    // "limit: 0" on other models means they are not enabled for free tier on this account.
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+    // State for Cancellation
+    let processAborted = false;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: systemInstruction + "\n\n" + prompt
-          }]
-        }]
-      })
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'cancel_automation') {
+            processAborted = true;
+            console.log("JAI: Process Cancelled by User");
+             chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                if (tabs[0]) {
+                    chrome.scripting.executeScript({
+                        target: {tabId: tabs[0].id},
+                        func: () => { 
+                            const b = document.getElementById('jai-status-banner'); 
+                            if(b) b.remove();
+                            alert("Process Cancelled.");
+                        }
+                    });
+                }
+            });
+        }
     });
 
-    const result = await response.json();
-    
-    if (result.error) {
-      throw new Error(result.error.message);
+    function updateStatusBanner(message, type = 'info') {
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+            if (tabs[0]) {
+                chrome.scripting.executeScript({
+                    target: {tabId: tabs[0].id},
+                    func: (msg, type) => {
+                        let banner = document.getElementById('jai-status-banner');
+                        if (!banner) {
+                            banner = document.createElement('div');
+                            banner.id = 'jai-status-banner';
+                            banner.style.cssText = `
+                                position: fixed; top: 0; left: 0; width: 100%; height: auto;
+                                padding: 12px 0; text-align: center; font-family: 'Segoe UI', sans-serif; 
+                                font-weight: 500; font-size: 14px; color: white;
+                                z-index: 2147483647; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                display: flex; justify-content: center; align-items: center; gap: 15px;
+                            `;
+                            banner.dataset.state = 'expanded';
+                            
+                            const content = document.createElement('span');
+                            content.id = 'jai-banner-text';
+                            banner.appendChild(content);
+                            
+                            // Cancel Btn
+                            const cancelBtn = document.createElement('button');
+                            cancelBtn.innerText = "Cancel";
+                            cancelBtn.style.cssText = "background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.5); color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;";
+                            cancelBtn.onclick = () => { chrome.runtime.sendMessage({action: 'cancel_automation'}); };
+                            banner.appendChild(cancelBtn);
+
+                            // Min Btn
+                            const minBtn = document.createElement('button');
+                            minBtn.innerText = "Minimize _";
+                            minBtn.style.cssText = "background: transparent; border: none; color: white; cursor: pointer; font-size: 12px; text-decoration: underline;";
+                            minBtn.onclick = () => {
+                                if (banner.dataset.state === 'expanded') {
+                                    banner.style.width = '40px'; banner.style.height = '40px'; banner.style.borderRadius = '50%'; banner.style.overflow = 'hidden'; banner.style.top = '20px'; banner.style.left = '20px'; banner.style.padding = '0'; content.style.display = 'none'; cancelBtn.style.display = 'none'; minBtn.innerText = "□"; banner.dataset.state = 'minimized';
+                                } else {
+                                    banner.style.width = '100%'; banner.style.height = 'auto'; banner.style.borderRadius = '0'; banner.style.top = '0'; banner.style.left = '0'; banner.style.padding = '12px 0'; content.style.display = 'inline'; cancelBtn.style.display = 'inline-block'; minBtn.innerText = "Minimize _"; banner.dataset.state = 'expanded';
+                                }
+                            };
+                            banner.appendChild(minBtn);
+                            document.body.prepend(banner);
+                        }
+                        
+                        document.getElementById('jai-banner-text').textContent = `JAI: ${msg}`;
+                        
+                        const colors = { 'info': '#2196f3', 'warning': '#ff9800', 'error': '#f44336', 'success': '#4caf50' };
+                        banner.style.background = colors[type] || colors['info'];
+                        
+                        if (type === 'success') { setTimeout(() => { const b = document.getElementById('jai-status-banner'); if(b) b.remove(); }, 5000); }
+                    },
+                    args: [message, type]
+                });
+            }
+        });
     }
+
+    async function fetchWithRotation(retries = 3, keyIndex = 0) {
+        // Status Updates
+        if (keyIndex > 0) {
+            updateStatusBanner(`Using Key ${keyIndex+1} (Backup)...`, 'info');
+        } else if(retries === 3 && keyIndex === 0) { 
+            processAborted = false; 
+            updateStatusBanner("Optimizing Resume via Gemini...", 'info'); 
+        }
+
+        if(processAborted) return null;
+
+        const currentKey = keys[keyIndex];
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${currentKey}`;
+
+        try {
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: systemInstruction + "\n\n" + prompt }] }],
+                generationConfig: { maxOutputTokens: 8192, temperature: 0.2 }
+              })
+            });
+
+            const result = await response.json();
+            
+            if(processAborted) return null;
+
+            if (result.error) {
+                // Check if it's a Quota/Rate Limit error (429)
+                if (result.error.code === 429 || result.error.message.toLowerCase().includes('quota')) {
+                    console.warn(`JAI: Key ${keyIndex+1} Limit Hit.`);
+                    
+                    // IF WE HAVE MORE KEYS, SWITCH IMMEDIATELY
+                    if (keyIndex < keys.length - 1) {
+                         const nextKey = keyIndex + 1;
+                         updateStatusBanner(`Quota Hit on Key ${keyIndex+1}. Switching to Key ${nextKey+1}...`, 'warning');
+                         await new Promise(r => setTimeout(r, 1500)); // Short visibility pause
+                         return fetchWithRotation(retries, nextKey);
+                    }
+                    
+                    // IF NO MORE KEYS, WAIT (Patient Mode)
+                    if (retries > 0) {
+                        const waitSec = 25;
+                        // COUNTDOWN
+                        for(let i = waitSec; i > 0; i--) {
+                            if(processAborted) return null;
+                            updateStatusBanner(`All Keys Exhausted. Waiting ${i}s for reset...`, 'warning');
+                            await new Promise(r => setTimeout(r, 1000));
+                        }
+                        
+                        if(processAborted) return null;
+                        updateStatusBanner(`Retrying with Key 1...`, 'info');
+                        return fetchWithRotation(retries - 1, 0); // Restart with Key 0
+                    }
+                }
+                updateStatusBanner(`Error: ${result.error.message}`, 'error');
+                throw new Error(result.error.message);
+            }
+            
+            updateStatusBanner("Success! Opening Overleaf...", 'success');
+            return result;
+
+        } catch (err) {
+            if(!processAborted) updateStatusBanner(`Network Error: ${err.message}`, 'error');
+            throw err;
+        }
+    }
+
+    const result = await fetchWithRotation();
     
     // Extract text from Gemini response structure
     let text = result.candidates[0].content.parts[0].text;
     
-    // Cleanup
-    text = text.replace(/```latex/g, '').replace(/```/g, '').trim();
+    // Cleanup Markdown
+    text = text.replace(/```latex/gi, '').replace(/```/g, '').trim();
+
+    // INTEGRITY CHECK
+    if (!text.includes('\\end{document}')) {
+        console.warn("JAI: Generated code seems truncated. Appending \\end{document}");
+        text += '\n\\end{document}';
+    }
 
     // FAILSAFE: Copy to clipboard using the current active tab (JD) before navigating away
-    // This runs in the context of the JD page which is active.
     chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
         if(tabs[0]) {
             chrome.scripting.executeScript({

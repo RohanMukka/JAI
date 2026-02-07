@@ -61,65 +61,64 @@ chrome.storage.local.get(['generatedLatex'], (items) => {
 });
 
 function injectAndDownload(latexCode) {
-    // 1. Copy to Clipboard immediately as backup
+    // 1. Copy to Clipboard immediately (Reliable Failsafe)
+    // We do this in the content script context, which has the permission.
     navigator.clipboard.writeText(latexCode).then(() => {
         showStatus("JAI: Copied to Clipboard! (Just in case)", "#333");
+    }).catch(err => {
+        console.error("JAI: Clipboard Copy Failed", err);
+        showStatus("JAI: Clipboard Copy Failed - Click Banner to Retry", "#f44336");
     });
 
     // Wait for Editor
     let attempts = 0;
     const interval = setInterval(() => {
         attempts++;
-        const aceEditor = document.querySelector('.ace_editor');
-        const cmEditor = document.querySelector('.cm-content');
+        const cmEditor = document.querySelector('.cm-content');     // New Overleaf
+        const aceEditor = document.querySelector('.ace_editor');    // Old Overleaf
         
-        if (aceEditor || cmEditor) {
+        if (cmEditor || aceEditor) {
             clearInterval(interval);
-            showStatus("JAI: Attempting Auto-Paste...", "#2196f3");
+            showStatus("JAI: Editor found. Injecting...", "#2196f3");
             
             // Clear storage
             chrome.storage.local.remove('generatedLatex');
             
             // Focus the editor
-            if (cmEditor) {
-                cmEditor.focus();
-                // Select All (Ctrl+A simulation is hard, let's just Select All range)
-                document.execCommand('selectAll', false, null);
-            } else {
-                aceEditor.focus();
-            }
+            if (cmEditor) cmEditor.focus();
+            else aceEditor.focus();
 
+            // Inject via script tag to access page context
+            const script = document.createElement('script');
+            script.textContent = `
                 (function() {
                     const latex = ${JSON.stringify(latexCode)};
                     
                     try {
                         const cmContent = document.querySelector('.cm-content');
-                        const aceEditor = document.querySelector('.ace_editor');
+                        const aceDiv = document.querySelector('.ace_editor');
 
                         if (cmContent) {
                             console.log("JAI: Focusing CodeMirror...");
                             cmContent.focus();
                             
-                            // Method 1: Select All & Insert Text (Browser Native)
-                            // This usually forces the editor to handle the input event
+                            // Method 1: Browser Native Insert (Best for CM6)
+                            // Select All
                             document.execCommand('selectAll', false, null);
-                            document.execCommand('delete', false, null);
+                            // Delete current content
+                            document.execCommand('delete', false, null); 
+                            // Insert new content
                             const success = document.execCommand('insertText', false, latex);
                             
-                            console.log("JAI: insertText success?", success);
-                            
-                            if (!success || cmContent.innerText.length < 50) {
-                                // Method 2: Force Paste Event
-                                const dt = new DataTransfer();
-                                dt.setData('text/plain', latex);
-                                const pasteEvt = new ClipboardEvent('paste', {
-                                    bubbles: true, cancelable: true, clipboardData: dt
-                                });
-                                cmContent.dispatchEvent(pasteEvt);
+                            if (!success) {
+                                console.warn("JAI: execCommand failed, trying fallback.");
+                                // Method 2: Fallback (Set Text - risky but needed)
+                                cmContent.innerText = latex; 
+                                cmContent.dispatchEvent(new Event('input', { bubbles: true }));
                             }
                         } 
-                        else if (window.ace && aceEditor) {
-                             const editor = ace.edit(aceEditor);
+                        else if (window.ace && aceDiv) {
+                             const editor = ace.edit(aceDiv);
                              editor.setValue(latex);
                              editor.clearSelection();
                         }
@@ -131,30 +130,23 @@ function injectAndDownload(latexCode) {
             
             // CHECK SUCCESS AND WAIT
             setTimeout(() => {
-                // Heuristic: Check if editor looks empty or length matches
-                // It's hard to read back from CM safely. 
-                // Let's just ask the user to verify visually, or Recompile.
+                showStatus("JAI: Compiled! If empty, CLICK HERE then Ctrl+V", "#ff9800"); // Orange warning
                 
-                showStatus("JAI: Compiled! If empty, CLICK HERE + Ctrl+V", "#ff9800"); // Orange warning
-                
-                // Add click listener to banner to help paste
+                // Add click listener to banner to help paste manually
                 statusBanner.onclick = () => {
                      navigator.clipboard.writeText(latexCode);
-                     showStatus("JAI: Copied! Press Ctrl+V in editor now.", "#f44336");
+                     showStatus("JAI: Re-Copied! Press Ctrl+V in editor now.", "#4caf50");
+                     // Also try to focus editor again
+                     const cm = document.querySelector('.cm-content');
+                     if(cm) cm.focus();
                 };
 
                 // Compile
                 const recompileBtn = document.querySelector('.recompile-button') || document.querySelector('[aria-label="Recompile"]');
                 if(recompileBtn) recompileBtn.click();
                 
-                // Wait for Download
-                setTimeout(() => {
-                     // Check if PDF is downloading. 
-                     // Only download if we think it worked? Hard to know.
-                     // Let's try downloading anyway.
-                     showStatus("JAI: Downloading... (Check PDF content)", "#4caf50");
-                     checkForDownload();
-                }, 4000);
+                showStatus("JAI: Done! Review PDF manually.", "#4caf50");
+                // Auto-download removed per user request.
             }, 1000);
             
         } else if (attempts > 30) {

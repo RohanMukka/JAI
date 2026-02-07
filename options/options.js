@@ -1,13 +1,20 @@
 document.getElementById('saveBtn').addEventListener('click', () => {
-  const apiKey = document.getElementById('apiKey').value;
+  const keys = [
+    document.getElementById('apiKey1').value.trim(),
+    document.getElementById('apiKey2').value.trim(),
+    document.getElementById('apiKey3').value.trim(),
+    document.getElementById('apiKey4').value.trim(),
+    document.getElementById('apiKey5').value.trim()
+  ].filter(k => k); // Remove empty strings
+
   const resumeContent = document.getElementById('resumeContent').value;
 
   chrome.storage.local.set({
-    apiKey: apiKey,
+    apiKeys: keys,
     resumeContent: resumeContent
   }, () => {
     const status = document.getElementById('status');
-    status.textContent = 'Saved!';
+    status.textContent = `Saved ${keys.length} API Keys!`;
     setTimeout(() => {
       status.textContent = '';
     }, 2000);
@@ -15,34 +22,54 @@ document.getElementById('saveBtn').addEventListener('click', () => {
 });
 
 document.getElementById('testBtn').addEventListener('click', async () => {
-    const apiKey = document.getElementById('apiKey').value;
+    const keys = [
+        document.getElementById('apiKey1').value.trim(),
+        document.getElementById('apiKey2').value.trim(),
+        document.getElementById('apiKey3').value.trim(),
+        document.getElementById('apiKey4').value.trim(),
+        document.getElementById('apiKey5').value.trim()
+    ].filter(k => k);
+
     const output = document.getElementById('debugOutput');
     output.style.display = 'block';
-    output.textContent = 'Checking available models...';
     
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            output.textContent = `ERROR: ${data.error.message}\n\nCode: ${data.error.status}\nDetails: ${JSON.stringify(data.error.details, null, 2)}`;
-            output.style.color = 'red';
-        } else {
-            const models = data.models ? data.models.map(m => m.name).join('\n') : 'No models found';
-            output.textContent = `SUCCESS! Your key works.\n\nAvailable Models:\n${models}`;
-            output.style.color = 'green';
+    if (keys.length === 0) {
+        output.textContent = "Please enter at least one API key.";
+        return;
+    }
+
+    output.textContent = 'Testing keys...\n';
+    
+    for (let i = 0; i < keys.length; i++) {
+        output.textContent += `Key ${i+1}: Checking... `;
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${keys[i]}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                output.textContent += `FAILED (${data.error.message})\n`;
+            } else {
+                output.textContent += `SUCCESS (Valid)\n`;
+            }
+        } catch(e) {
+            output.textContent += `ERROR (Network)\n`;
         }
-    } catch(e) {
-        output.textContent = `Network Error: ${e.message}`;
-        output.style.color = 'red';
     }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  chrome.storage.local.get(['apiKey', 'resumeContent'], (items) => {
-    if (items.apiKey) {
-      document.getElementById('apiKey').value = items.apiKey;
+  chrome.storage.local.get(['apiKey', 'apiKeys', 'resumeContent'], (items) => {
+    // Migration: If 'apiKey' exists but 'apiKeys' doesn't, use 'apiKey'
+    let keys = items.apiKeys || [];
+    if (keys.length === 0 && items.apiKey) {
+        keys = [items.apiKey];
     }
+    
+    if (keys[0]) document.getElementById('apiKey1').value = keys[0];
+    if (keys[1]) document.getElementById('apiKey2').value = keys[1];
+    if (keys[2]) document.getElementById('apiKey3').value = keys[2];
+    if (keys[3]) document.getElementById('apiKey4').value = keys[3];
+    if (keys[4]) document.getElementById('apiKey5').value = keys[4];
     
     // Default Hardcoded Resume provided by user
     const defaultResume = String.raw`\documentclass[letterpaper,11pt]{article}

@@ -59,11 +59,21 @@
 <body>
   <h2>JAI Configuration</h2>
 
-  <label><strong>Google Gemini API Key</strong></label>
-  <div style="display: flex; gap: 10px;">
-    <input type="password" id="apiKey" placeholder="AIzaSy..." style="flex-grow: 1;">
-    <button id="testBtn" style="padding: 10px; background-color: #6c757d;">Test Availability</button>
+  <label><strong>Google Gemini API Keys (Rotation)</strong></label>
+  <p style="font-size: 0.8em; color: #666; margin-top: 0;">Enter up to 5 keys. JAI will try Key 1 first, then switch if
+    it hits a limit.</p>
+
+  <div id="apiKeysContainer">
+    <input type="password" id="apiKey1" placeholder="Key 1 (Primary)..." style="margin-bottom: 5px;">
+    <input type="password" id="apiKey2" placeholder="Key 2 (Optional)..." style="margin-bottom: 5px;">
+    <input type="password" id="apiKey3" placeholder="Key 3 (Optional)..." style="margin-bottom: 5px;">
+    <input type="password" id="apiKey4" placeholder="Key 4 (Optional)..." style="margin-bottom: 5px;">
+    <input type="password" id="apiKey5" placeholder="Key 5 (Optional)..." style="margin-bottom: 5px;">
   </div>
+
+  <button id="testBtn" style="padding: 10px; background-color: #6c757d; margin-bottom:15px; width:100%;">Test All
+    Available Keys</button>
+
   <pre id="debugOutput"
     style="background:#f8f9fa; padding:10px; border:1px solid #ddd; display:none; white-space: pre-wrap; font-size: 0.8em;"></pre>
 
