@@ -1,4 +1,9 @@
 // background.js
+try {
+    importScripts('config.js');
+} catch (e) {
+    console.error("JAI: Failed to load config.js. Make sure it exists!", e);
+}
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'generate_and_automate') {
@@ -9,16 +14,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function handleAutomation(jdText, sendResponse) {
   try {
-    const data = await chrome.storage.local.get(['apiKey', 'apiKeys', 'resumeContent']);
+    const data = await chrome.storage.local.get(['resumeContent']);
     
-    // Migration logic: Ensure we have an array of keys
-    let keys = data.apiKeys || [];
-    if (keys.length === 0 && data.apiKey) {
-        keys = [data.apiKey];
-    }
-    
-    if (keys.length === 0) {
-        throw new Error("No API Keys found. Please add them in Extension Options.");
+    // Load API Keys from config.js
+    const keys = (typeof JAI_CONFIG !== 'undefined' && JAI_CONFIG.API_KEYS) ? JAI_CONFIG.API_KEYS : [];
+
+    if (keys.length === 0 || keys[0] === "YOUR_API_KEY_1") {
+        console.warn("JAI: No API keys found in config.js. Please populate extension/scripts/config.js");
     }
     
     // Call Gemini with Key Rotation (Pass the whole array)
@@ -88,6 +90,25 @@ async function callOpenAI(apiKeys, resume, jd) {
       9. NO VISUAL CHANGES: Do not add \hrule or change colors.
       10. Every sentence should be human written and should not sound like it is AI generated.
       11. Once check all the above instructions and make sure the resume is ATS friendly and also good for humans to read.
+      12. use the same vspace as the base resume.
+    Your job is to MODIFY CONTENT ONLY, not layout structure.
+
+You must strictly preserve:
+- The existing LaTeX document class, packages, commands, and macros
+- All custom commands such as \resumeProjectHeading, \resumeItem, \resumeSubheading
+- Section order and formatting
+- Spacing commands unless explicitly told to change them
+
+Your goals are:
+1. Ensure the resume fits on EXACTLY one page (letterpaper).
+2. Fix any misaligned or poorly grouped project entries.
+3. Improve clarity and alignment WITHOUT adding new sections.
+4. Maintain a strong software engineering focus.
+
+DO NOT add filler text.
+DO NOT invent experience.
+DO NOT remove metrics unless necessary to fit one page.
+DO NOT change font size, margins, or document class.
     `;
 
     const prompt = `
@@ -229,7 +250,6 @@ async function callOpenAI(apiKeys, resume, jd) {
                 if (result.error.code === 429 || result.error.message.toLowerCase().includes('quota')) {
                     console.warn(`JAI: Key ${keyIndex+1} Limit Hit.`);
                     
-                    // IF WE HAVE MORE KEYS, SWITCH IMMEDIATELY
                     if (keyIndex < keys.length - 1) {
                          const nextKey = keyIndex + 1;
                          updateStatusBanner(`Quota Hit on Key ${keyIndex+1}. Switching to Key ${nextKey+1}...`, 'warning');

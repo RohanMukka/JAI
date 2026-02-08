@@ -1,75 +1,20 @@
 document.getElementById('saveBtn').addEventListener('click', () => {
-  const keys = [
-    document.getElementById('apiKey1').value.trim(),
-    document.getElementById('apiKey2').value.trim(),
-    document.getElementById('apiKey3').value.trim(),
-    document.getElementById('apiKey4').value.trim(),
-    document.getElementById('apiKey5').value.trim()
-  ].filter(k => k); // Remove empty strings
-
   const resumeContent = document.getElementById('resumeContent').value;
 
   chrome.storage.local.set({
-    apiKeys: keys,
     resumeContent: resumeContent
   }, () => {
     const status = document.getElementById('status');
-    status.textContent = `Saved ${keys.length} API Keys!`;
+    status.textContent = `Saved Resume Content!`;
     setTimeout(() => {
       status.textContent = '';
     }, 2000);
   });
 });
 
-document.getElementById('testBtn').addEventListener('click', async () => {
-    const keys = [
-        document.getElementById('apiKey1').value.trim(),
-        document.getElementById('apiKey2').value.trim(),
-        document.getElementById('apiKey3').value.trim(),
-        document.getElementById('apiKey4').value.trim(),
-        document.getElementById('apiKey5').value.trim()
-    ].filter(k => k);
-
-    const output = document.getElementById('debugOutput');
-    output.style.display = 'block';
-    
-    if (keys.length === 0) {
-        output.textContent = "Please enter at least one API key.";
-        return;
-    }
-
-    output.textContent = 'Testing keys...\n';
-    
-    for (let i = 0; i < keys.length; i++) {
-        output.textContent += `Key ${i+1}: Checking... `;
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${keys[i]}`);
-            const data = await response.json();
-            
-            if (data.error) {
-                output.textContent += `FAILED (${data.error.message})\n`;
-            } else {
-                output.textContent += `SUCCESS (Valid)\n`;
-            }
-        } catch(e) {
-            output.textContent += `ERROR (Network)\n`;
-        }
-    }
-});
-
 document.addEventListener('DOMContentLoaded', () => {
-  chrome.storage.local.get(['apiKey', 'apiKeys', 'resumeContent'], (items) => {
-    // Migration: If 'apiKey' exists but 'apiKeys' doesn't, use 'apiKey'
-    let keys = items.apiKeys || [];
-    if (keys.length === 0 && items.apiKey) {
-        keys = [items.apiKey];
-    }
-    
-    if (keys[0]) document.getElementById('apiKey1').value = keys[0];
-    if (keys[1]) document.getElementById('apiKey2').value = keys[1];
-    if (keys[2]) document.getElementById('apiKey3').value = keys[2];
-    if (keys[3]) document.getElementById('apiKey4').value = keys[3];
-    if (keys[4]) document.getElementById('apiKey5').value = keys[4];
+  chrome.storage.local.get(['resumeContent'], (items) => {
+    // Keys are now hardcoded in background.js
     
     // Default Hardcoded Resume provided by user
     const defaultResume = String.raw`\documentclass[letterpaper,11pt]{article}

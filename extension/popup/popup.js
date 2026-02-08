@@ -7,9 +7,10 @@ document.getElementById('automateBtn').addEventListener('click', async () => {
   const btn = document.getElementById('automateBtn');
   
   // Check settings first
-  const settings = await chrome.storage.local.get(['apiKey', 'resumeContent']);
-  if (!settings.apiKey || !settings.resumeContent) {
-      statusEl.textContent = 'Please configure API Key and Resume in Settings first!';
+  const settings = await chrome.storage.local.get(['resumeContent']);
+  
+  if (!settings.resumeContent) {
+      statusEl.textContent = 'Please configure Resume in Settings first!';
       statusEl.style.color = 'red';
       setTimeout(() => chrome.runtime.openOptionsPage(), 1500);
       return;
