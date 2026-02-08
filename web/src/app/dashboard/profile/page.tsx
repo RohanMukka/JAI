@@ -490,6 +490,7 @@ export default function ProfilePage() {
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Race</span>
                             <select name="race" value={formData.race} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
+                                <option value="">Select...</option>
                                 <option value="Asian">Asian</option>
                                 <option value="Black or African American">Black or African American</option>
                                 <option value="Hispanic or Latino">Hispanic or Latino</option>

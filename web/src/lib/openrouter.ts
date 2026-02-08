@@ -14,11 +14,9 @@ export async function parseResumeFromPdf(resumeBuffer: Buffer): Promise<string> 
     let resumeText = "";
     try {
         // @ts-ignore
-        const { PDFParse } = require('pdf-parse');
-        const parser = new PDFParse({ data: resumeBuffer });
-        const pdfData = await parser.getText();
-        await parser.destroy();
-        resumeText = pdfData.text;
+        const pdf = require('pdf-parse');
+        const data = await pdf(resumeBuffer);
+        resumeText = data.text;
         console.log(`[OpenRouter] PDF Extracted. Length: ${resumeText.length}`);
         return resumeText;
     } catch (error) {

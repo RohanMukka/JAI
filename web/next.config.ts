@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     domains: ["lh3.googleusercontent.com"],
   },
-  serverExternalPackages: ["pdf-parse"],
+  serverExternalPackages: ["pdf-parse", "openai"],
 };
 
 export default nextConfig;
