@@ -50,20 +50,28 @@
 
     // Helper: Smart Select Value Setter
     function setSelectValue(select, value) {
-        if (!select || !value) return false;
+        if (!select) return false;
+        
+        // 1. Special Case: Referral Source (if value is generic or null, try to pick a common one)
+        if (value === '___REFERRAL_FALLBACK___') {
+             for (const option of select.options) {
+                 const t = option.text.toLowerCase();
+                 if (t.includes('linkedin') || t.includes('indeed') || t.includes('glassdoor')) {
+                     select.value = option.value;
+                     setNativeValue(select, option.value);
+                     return true;
+                 }
+             }
+             return false;
+        }
+
+        if (!value) return false;
+
         const normalize = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
         const target = normalize(value);
         
         let bestOption = null;
         let maxScore = 0;
-
-        // 1. Try exact value match
-        for (const option of select.options) {
-             if (option.value === value) {
-                 select.value = value;
-                 return true;
-             }
-        }
 
         // 2. Fuzzy Text Match
         const cleanTarget = target.replace(/[^a-z0-9]/g, '');
@@ -92,7 +100,7 @@
             }
         }
 
-        if (maxScore > 0.75 && bestOption) { // Lower threshold slightly
+        if (maxScore > 0.65 && bestOption) { // Lowered threshold slightly to catch "Asian (Not Hispanic)" for "Asian"
             console.log(`JAI: Selecting fuzzy match '${bestOption.text}' for '${value}' (Score: ${maxScore})`);
             select.value = bestOption.value;
             // Force React change
@@ -166,14 +174,27 @@
                 lastName = parts.slice(1).join(' ');
             }
 
+            // Education Extraction
+            let latestSchool = "";
+            let latestMajor = "";
+            if (profile.education && Array.isArray(profile.education) && profile.education.length > 0) {
+                // Assuming education is sorted or we take the first as "most recent/relevant"
+                latestSchool = profile.education[0].institution || profile.education[0].school || "";
+                latestMajor = profile.education[0].major || profile.education[0].degree || ""; 
+            }
+
             // --- 2. Define Supported Fields ---
             const fieldDefinitions = [
                 // Identity
-                { key: 'firstName', val: firstName, keywords: ['first name', 'given name', 'fname'] },
+                { key: 'firstName', val: firstName, keywords: ['first name', 'given name', 'fname', 'preferred first name', 'preferred name'] },
                 { key: 'middleName', val: middleName, keywords: ['middle name', 'mname', 'middle initial'] },
                 { key: 'lastName', val: lastName, keywords: ['last name', 'surname', 'family name', 'lname'] },
                 { key: 'fullName', val: profile.name, keywords: ['full name', 'your name', 'complete name', 'legal name'] },
                 
+                // Education (New)
+                { key: 'school', val: latestSchool, keywords: ['school', 'university', 'college', 'institution', 'attended', 'education'] },
+                { key: 'major', val: latestMajor, keywords: ['major', 'degree', 'field of study', 'discipline'] },
+
                 // Contact
                 { key: 'email', val: profile.email, keywords: ['email', 'e-mail', 'email address'] },
                 
@@ -192,22 +213,32 @@
                 // Address (Granular)
                 { key: 'addressLine1', val: profile.addressLine1 || profile.address, keywords: ['address line 1', 'street address', 'address 1', 'street'] },
                 { key: 'addressLine2', val: profile.addressLine2, keywords: ['address line 2', 'apartment', 'suite', 'unit', 'address 2'] },
-                { key: 'city', val: profile.city, keywords: ['city', 'town', 'municipality'] },
+                { key: 'city', val: profile.city, keywords: ['city', 'town', 'municipality', 'your location', 'search by city'] },
                 { key: 'state', val: profile.state, keywords: ['state', 'province', 'region'] },
                 { key: 'zip', val: profile.zip, keywords: ['zip', 'postal code', 'postcode', 'zip code', 'zip/postal code'] },
                 { key: 'country', val: profile.country, keywords: ['country', 'nation', 'country/region'] },
                 
-                // Demographics & EEOC
-                { key: 'gender', val: profile.gender, keywords: ['gender', 'sex'] },
-                { key: 'race', val: profile.race, keywords: ['race', 'ethnicity'] },
+                // Demographics & EEOC -- IMPROVED KEYWORDS
+                { key: 'gender', val: profile.gender, keywords: ['gender', 'sex', 'gender identity'] },
+                { key: 'race', val: profile.race, keywords: ['race', 'ethnicity', 'racial'] },
                 { key: 'veteran', val: profile.veteran, keywords: ['veteran', 'military'] },
                 { key: 'disability', val: profile.disability, keywords: ['disability', 'handicap'] },
-                { key: 'workAuth', val: profile.workAuth, keywords: ['work authorization', 'authorized to work', 'legally authorized'] },
-                { key: 'sponsorship', val: profile.sponsorship, keywords: ['sponsorship', 'require visa', 'require sponsorship'] },
+                { key: 'workAuth', val: profile.workAuth, keywords: ['work authorization', 'authorized to work', 'legally authorized', 'work in the united states'] },
+                { key: 'sponsorship', val: profile.sponsorship, keywords: ['sponsorship', 'require visa', 'require sponsorship', 'future sponsorship'] },
 
                 // Job Preferences
-                { key: 'desiredSalary', val: profile.desiredSalary, keywords: ['desired salary', 'expected salary', 'compensation', 'pay expectation'] },
+                { key: 'desiredSalary', val: profile.desiredSalary, keywords: ['desired salary', 'expected salary', 'compensation', 'pay expectation', 'target salary'] },
                 { key: 'noticePeriod', val: profile.noticePeriod, keywords: ['notice period', 'start date', 'available to start', 'earliest start'] },
+
+                // Boolean / Choice Questions
+                { key: 'workAuthBoolean', type: 'boolean', keywords: ['authorized to work', 'legally authorized', 'work authorization'] },
+                { key: 'sponsorshipBoolean', type: 'boolean', keywords: ['sponsorship', 'require visa', 'will you now or in the future require'] },
+                { key: 'isStudentBoolean', type: 'boolean', keywords: ['enrolled in a degree', 'student', 'currently enrolled'] },
+                { key: 'relocationBoolean', type: 'boolean', keywords: ['relocate', 'commute'] },
+                { key: 'officeLocationBoolean', type: 'boolean', keywords: ['available to work', 'commit to this requirement', 'commutable distance'] },
+
+                 // Referral Fallback
+                { key: 'referralSource', val: '___REFERRAL_FALLBACK___', keywords: ['how did you learn', 'hear about this job', 'source'] },
 
                 // Fallbacks
                 { key: 'location', val: profile.location, keywords: ['location', 'residence'] }, 
@@ -258,51 +289,50 @@
             });
 
             // --- 4. Resolve Conflicts & Fill ---
-            // Sort matches by score descending to prioritize clear matches
-            matches.sort((a, b) => b.score - a.score);
+            matches.sort((a, b) => b.score - a.score); // Best matches first
 
             const filledInputs = new Set();
-            const handledFields = new Set(); // Optional: allow multiple inputs for same field? E.g. confirm email? 
-            // For now, let's allow filling multiple inputs with same data if they match strongly (e.g. repeated fields)
-            
+            // const handledFields = new Set(); 
+
             matches.forEach(match => {
-                if (filledInputs.has(match.input)) return; // Input already claimed
+                if (filledInputs.has(match.input)) return; 
 
-                // Filter Overlapping Names: 
-                // If we have "Full Name" and "First Name" matches on the same page, we need to be careful.
-                // But since we are iterating INPUTS, an input is either Full Name OR First Name.
-                // If "First Name" label matches "Full Name" keyword? 
-                // "First Name" vs "Full Name" -> 0.8 includes. 
-                // "First Name" vs "First Name" -> 1.0. 
-                // So correct match wins.
-
-                const { key, val } = match.fieldDef;
+                const { key, val, type } = match.fieldDef;
                 
                 try {
-                    if (val) {
+                    // Handle Boolean/Choice Logic (Yes/No questions)
+                    if (type === 'boolean') {
+                        // For boolean fields, val is a function returning true/false/'yes'/'no' string
+                        // OR val is a string we need to map to Yes/No options
+                        handleBooleanInput(match.input, key, profile);
+                        report.push({ field: key, status: 'filled_boolean' });
+                    } 
+                    else if (val) {
                         let success = false;
                         if (match.input.tagName === 'SELECT') {
                             success = setSelectValue(match.input, val);
                         } else {
-                            setNativeValue(match.input, val);
-                            success = true;
+                            // Logic for text search inputs (e.g. City search)
+                             if (key === 'city' || key === 'school') {
+                                simulateTyping(match.input, val);
+                                success = true;
+                             } else {
+                                success = setNativeValue(match.input, val);
+                             }
                         }
                         
                         if (success) {
                             report.push({ field: key, status: 'filled', value: val });
-                            
-                            // Visual Success
                             match.input.style.backgroundColor = "#e8f0fe"; 
-                            match.input.style.border = "2px solid #10B981"; // Green
+                            match.input.style.border = "2px solid #10B981"; 
                         } else {
-                            // Select matching failed
                              report.push({ field: key, status: 'error', error: 'Option not found' });
-                             match.input.style.border = "2px solid #EF4444"; // Red
+                             match.input.style.border = "2px solid #EF4444"; 
                         }
 
                     } else {
                         report.push({ field: key, status: 'empty_in_profile' });
-                        match.input.style.border = "2px solid #F59E0B"; // Amber
+                        match.input.style.border = "2px solid #F59E0B"; 
                     }
                 } catch (e) {
                     report.push({ field: key, status: 'error', error: e.message });
@@ -315,5 +345,90 @@
             sendResponse({ success: true, report: report });
         }
     });
+
+    // --- Helpers ---
+
+    function handleBooleanInput(input, key, profile) {
+        // Logic to determine Yes/No answer based on profile
+        let answer = null; // true (Yes), false (No), or null
+
+        if (key === 'workAuthBoolean') {
+            // "Are you authorized to work?"
+            const auth = (profile.workAuth || '').toLowerCase();
+            // Assume Yes if citizen, pr, or authorized is mentioned
+            if (auth.includes('citizen') || auth.includes('permanent') || auth.includes('yes') || auth.includes('authorized')) {
+                answer = true;
+            } else if (auth) {
+                 // Check explicitly for 'No'
+                 if (auth.includes('no') || auth.includes('not')) answer = false;
+            }
+        }
+        else if (key === 'sponsorshipBoolean') {
+             // "Will you require sponsorship?"
+             const spons = (profile.sponsorship || '').toLowerCase();
+             if (spons.includes('no') || spons.includes('not')) answer = false;
+             else if (spons.includes('yes') || spons.includes('require')) answer = true;
+        }
+        else if (key === 'isStudentBoolean') {
+            // "Are you a student?" or "Enrolled in CS?"
+             if (profile.education && profile.education.length > 0) answer = true;
+        }
+        else if (key === 'relocationBoolean') {
+            // "Willing to relocate?"
+            answer = true; 
+        }
+        else if (key === 'officeLocationBoolean') {
+            // "Commit to work in Raleigh?"
+            answer = true;
+        }
+
+        if (answer === null) return;
+
+        // Apply Answer to Input (Radio or Select)
+        if (input.tagName === 'SELECT') {
+            // Look for Yes/No options
+            for (const opt of input.options) {
+                const text = opt.text.toLowerCase();
+                const val = opt.value.toLowerCase();
+                
+                if (answer === true && (text === 'yes' || text.includes('authorized') || text.includes('agree') || val === 'yes')) {
+                    input.value = opt.value;
+                    setNativeValue(input, opt.value);
+                    break;
+                }
+                if (answer === false && (text === 'no' || text.includes('not') || val === 'no')) {
+                    input.value = opt.value;
+                    setNativeValue(input, opt.value);
+                    break;
+                }
+            }
+        } else if (input.type === 'radio' || input.type === 'checkbox') {
+             const label = getInputLabelText(input).toLowerCase();
+             const val = input.value.toLowerCase();
+             
+             // Check if THIS radio is the one we want
+             const isYes = val === 'yes' || label === 'yes' || val === 'true' || label.includes('yes');
+             const isNo = val === 'no' || label === 'no' || val === 'false' || label.includes('no');
+
+             if (answer === true && isYes) input.click();
+             if (answer === false && isNo) input.click();
+        }
+    }
+
+    function simulateTyping(element, value) {
+        element.focus();
+        element.value = value;
+        setNativeValue(element, value);
+        
+        // Dispatch key events to trigger listeners
+        element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+        element.dispatchEvent(new KeyboardEvent('keypress', { bubbles: true }));
+        element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // Blur might close dropdown, so maybe keep focus? 
+        // element.blur(); 
+    }
 
 })();

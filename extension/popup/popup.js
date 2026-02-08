@@ -1,53 +1,110 @@
 const JAI_WEB_URL = "http://localhost:3000";
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initial UI State
+    document.getElementById('connectionStatus').textContent = 'Connecting...';
+    
     // Check local storage for token
     const { authToken } = await chrome.storage.local.get(['authToken']);
     
     if (authToken) {
+        console.log("JAI: Auth token found in storage.");
         showMainUI();
     } else {
-        // Auto-check on load, but don't show login UI yet to avoid flash? 
-        // Actually, just show login UI for now, let auto-check happen.
-        showLoginUI();
-        checkWebSession(); 
+        console.log("JAI: No token in storage, checking active session...");
+        await checkWebSession(); 
     }
 });
 
 function showMainUI() {
+    console.log("JAI: Switching to Main UI");
     document.getElementById('loginSection').classList.add('hidden');
+    document.getElementById('loginSection').style.display = 'none';
+    
     document.getElementById('mainSection').classList.remove('hidden');
-    // Update header status
+    document.getElementById('mainSection').style.display = 'block';
+    
+    document.getElementById('connectionStatus').textContent = 'Connected';
     document.getElementById('connectionStatus').style.opacity = '1';
+    document.getElementById('connectionStatus').style.color = '#10B981'; // Green
 }
 
 function showLoginUI() {
+    console.log("JAI: Switching to Login UI");
     document.getElementById('loginSection').classList.remove('hidden');
+    document.getElementById('loginSection').style.display = 'block';
+    
     document.getElementById('mainSection').classList.add('hidden');
-    document.getElementById('connectionStatus').style.opacity = '0.3';
+    document.getElementById('mainSection').style.display = 'none';
+    
+    document.getElementById('connectionStatus').textContent = 'Not Connected';
+    document.getElementById('connectionStatus').style.opacity = '0.5';
+    document.getElementById('connectionStatus').style.color = '#9CA3AF';
 }
 
-async function checkWebSession() {
-    console.log("JAI: Checking session...");
-    const domainsToCheck = ['localhost', '127.0.0.1'];
+async function checkWebSession(manual = false) {
+    console.log("JAI: Checking session...", manual ? "(Manual)" : "(Auto)");
+    const statusEl = document.getElementById('connectionStatus');
+    statusEl.textContent = 'Connecting...';
+    statusEl.style.color = '#F59E0B'; // Amber
+
+    try {
+        // Method 1: Direct API Call (Most Reliable)
+        console.log("JAI: Fetching /api/auth/session...");
+        const res = await fetch(`${JAI_WEB_URL}/api/auth/session`, { 
+            credentials: 'include',
+            cache: 'no-store'
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            if (data && (data.user || Object.keys(data).length > 0)) {
+                console.log("JAI: Session verified via API!");
+                await chrome.storage.local.set({ authToken: "verified-session" });
+                showMainUI();
+                if (manual) alert("Successfully connected to JAI!");
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn("JAI: API check failed.", e);
+    }
+
+    // Method 2: Cookie Scan (Fallback)
+    console.log("JAI: Scanning cookies...");
+    // Check both specific URLs and general domains
+    const checks = [
+        { url: 'http://localhost:3000' },
+        { url: 'http://127.0.0.1:3000' },
+        { domain: 'localhost' } 
+    ];
     
-    for (const domain of domainsToCheck) {
+    for (const check of checks) {
         try {
-            const cookies = await chrome.cookies.getAll({ domain });
+            const cookies = await chrome.cookies.getAll(check);
             for (const cookie of cookies) {
-                // Check for common auth cookies
-                if (cookie.name.includes('next-auth.session-token') || cookie.name.includes('JaiAuth')) {
+                if (cookie.name.includes('next-auth.session-token') || 
+                    cookie.name.includes('JaiAuth') || 
+                    cookie.name.includes('secure-next-auth')) {
+                    
                     console.log(`JAI: Found token in cookie: ${cookie.name}`);
                     await chrome.storage.local.set({ authToken: "cookie-session" });
                     showMainUI();
+                    if (manual) alert("Successfully connected via Cookies!");
                     return;
                 }
             }
-        } catch (e) {
-            console.error(`JAI: Error checking ${domain}`, e);
-        }
+        } catch (e) { console.error(e); }
     }
+
     console.log("JAI: No session found.");
+    showLoginUI();
+    
+    if (manual) {
+        statusEl.textContent = 'Connection Failed';
+        statusEl.style.color = '#EF4444'; // Red
+        alert("Could not find a logged-in session on localhost:3000.\n\nPlease ensure you are logged into the JAI Dashboard in this browser.");
+    }
 }
 
 // Event Listeners
@@ -56,7 +113,7 @@ document.getElementById('loginBtn').addEventListener('click', () => {
 });
 
 document.getElementById('checkCxnBtn').addEventListener('click', () => {
-    checkWebSession();
+    checkWebSession(true);
 });
 
 // Manual Fallback Toggle
@@ -159,9 +216,10 @@ document.getElementById('autofillBtn').addEventListener('click', async () => {
     statusEl.textContent = 'Fetching Profile...';
 
     try {
-        console.log("JAI: Fetching profile from", `${JAI_WEB_URL}/api/profile`);
-        const response = await fetch(`${JAI_WEB_URL}/api/profile`, { cache: "no-store" });
-        if (!response.ok) throw new Error("Failed to fetch profile. " + response.statusText);
+        const response = await fetch(`${JAI_WEB_URL}/api/profile`, { 
+            cache: "no-store",
+            credentials: 'include'
+        });
         
         const profile = await response.json();
         console.log("JAI: Profile fetched successfully:", profile);
