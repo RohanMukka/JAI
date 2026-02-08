@@ -7,13 +7,15 @@ import { fetchApi } from '@/lib/api';
 export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [showAddEdu, setShowAddEdu] = useState(false);
+    const [showAddExp, setShowAddExp] = useState(false);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
         education: [] as any[],
         experience: [] as any[],
         skills: '', // comma separated string or array? Let's treat as string for input
-        resumeText: '',
+
         workAuth: '',
         disability: '',
         gender: '',
@@ -85,9 +87,19 @@ export default function ProfilePage() {
         e.preventDefault();
         setSaving(true);
         try {
+            const payload = { ...formData };
+            // Auto-save pending education if valid
+            if (newEdu.school.trim() || newEdu.degree.trim()) {
+                payload.education = [...payload.education, newEdu];
+            }
+            // Auto-save pending experience if valid
+            if (newExp.company.trim() || newExp.role.trim()) {
+                payload.experience = [...payload.experience, newExp];
+            }
+
             await fetchApi('/api/profile', {
                 method: 'POST',
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
             alert('Profile saved!');
         } catch (error) {
@@ -111,33 +123,33 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">First Name</label>
-                            <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                            <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                            <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                            <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Phone</label>
-                            <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                            <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Location</label>
-                            <input type="text" name="location" value={formData.location} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                            <input type="text" name="location" value={formData.location} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 mt-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">LinkedIn</label>
-                            <input type="text" name="linkedin" value={formData.linkedin} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                            <input type="text" name="linkedin" value={formData.linkedin} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">GitHub</label>
-                            <input type="text" name="github" value={formData.github} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                            <input type="text" name="github" value={formData.github} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Portfolio</label>
-                            <input type="text" name="portfolio" value={formData.portfolio} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                            <input type="text" name="portfolio" value={formData.portfolio} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
                     </div>
                 </section>
@@ -146,60 +158,120 @@ export default function ProfilePage() {
                 <section>
                     <h3 className="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Education</h3>
                     {formData.education.map((edu, idx) => (
-                        <div key={idx} className="bg-gray-50 p-4 rounded-md relative group mb-2">
+                        <div key={idx} className="bg-gray-50 p-4 rounded-md relative group mb-2 border border-gray-200">
                             <button type="button" onClick={() => setFormData(p => ({ ...p, education: p.education.filter((_, i) => i !== idx) }))} className="absolute top-2 right-2 text-red-500 text-sm hidden group-hover:block">Remove</button>
-                            <p className="font-semibold">{edu.school}</p>
-                            <p className="text-sm">{edu.degree} ({edu.startDate} - {edu.endDate})</p>
+                            <p className="font-semibold text-black">{edu.school}</p>
+                            <p className="text-sm text-black">{edu.degree} ({edu.startDate} - {edu.endDate})</p>
                         </div>
                     ))}
-                    <div className="border-t border-gray-200 pt-4 mt-2">
-                        <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
-                            <input placeholder="School Name" value={newEdu.school} onChange={e => handleArrayChange(setNewEdu, 'school', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                            <input placeholder="Degree" value={newEdu.degree} onChange={e => handleArrayChange(setNewEdu, 'degree', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                            <input placeholder="Start Date" type="date" value={newEdu.startDate} onChange={e => handleArrayChange(setNewEdu, 'startDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                            <input placeholder="End Date" type="date" value={newEdu.endDate} onChange={e => handleArrayChange(setNewEdu, 'endDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+
+                    {!showAddEdu ? (
+                        <button type="button" onClick={() => setShowAddEdu(true)} className="mt-2 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            + Add Education
+                        </button>
+                    ) : (
+                        <div className="border border-gray-200 p-4 rounded-md mt-2 bg-gray-50">
+                            <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
+                                <input placeholder="School Name" value={newEdu.school} onChange={e => handleArrayChange(setNewEdu, 'school', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                <input placeholder="Degree" value={newEdu.degree} onChange={e => handleArrayChange(setNewEdu, 'degree', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                <input placeholder="Start Date" type="date" value={newEdu.startDate} onChange={e => handleArrayChange(setNewEdu, 'startDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                <input placeholder="End Date" type="date" value={newEdu.endDate} onChange={e => handleArrayChange(setNewEdu, 'endDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                            </div>
+                            <div className="mt-4 flex space-x-2">
+                                <button type="button" onClick={() => { addEducation(); setShowAddEdu(false); }} className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">Save Education</button>
+                                <button type="button" onClick={() => setShowAddEdu(false)} className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">Cancel</button>
+                            </div>
                         </div>
-                        <button type="button" onClick={addEducation} className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">Add Education</button>
-                    </div>
+                    )}
                 </section>
 
                 {/* Experience */}
                 <section>
                     <h3 className="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Work Experience</h3>
                     {formData.experience.map((exp, idx) => (
-                        <div key={idx} className="bg-gray-50 p-4 rounded-md relative group mb-2">
+                        <div key={idx} className="bg-gray-50 p-4 rounded-md relative group mb-2 border border-gray-200">
                             <button type="button" onClick={() => setFormData(p => ({ ...p, experience: p.experience.filter((_, i) => i !== idx) }))} className="absolute top-2 right-2 text-red-500 text-sm hidden group-hover:block">Remove</button>
-                            <p className="font-semibold">{exp.role} at {exp.company}</p>
-                            <p className="text-sm">{exp.startDate} - {exp.current ? 'Present' : exp.endDate}</p>
-                            <p className="text-xs text-gray-500 mt-1">{exp.description}</p>
+                            <p className="font-semibold text-black">{exp.role} at {exp.company}</p>
+                            <p className="text-sm text-black">{exp.startDate} - {exp.current ? 'Present' : exp.endDate}</p>
+                            <p className="text-xs text-black mt-1">{exp.description}</p>
                         </div>
                     ))}
-                    <div className="border-t border-gray-200 pt-4 mt-2">
-                        <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
-                            <input placeholder="Company Name" value={newExp.company} onChange={e => handleArrayChange(setNewExp, 'company', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                            <input placeholder="Role" value={newExp.role} onChange={e => handleArrayChange(setNewExp, 'role', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                            <div className="flex items-center space-x-2 sm:col-span-2">
-                                <input type="checkbox" checked={newExp.current} onChange={e => handleArrayChange(setNewExp, 'current', e.target.checked)} id="current-work-prof" />
-                                <label htmlFor="current-work-prof" className="text-sm text-gray-700">Currently Working Here</label>
+
+                    {!showAddExp ? (
+                        <button type="button" onClick={() => setShowAddExp(true)} className="mt-2 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            + Add Experience
+                        </button>
+                    ) : (
+                        <div className="border border-gray-200 p-4 rounded-md mt-2 bg-gray-50">
+                            <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
+                                <input placeholder="Company Name" value={newExp.company} onChange={e => handleArrayChange(setNewExp, 'company', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                <input placeholder="Role" value={newExp.role} onChange={e => handleArrayChange(setNewExp, 'role', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                <div className="flex items-center space-x-2 sm:col-span-2">
+                                    <input type="checkbox" checked={newExp.current} onChange={e => handleArrayChange(setNewExp, 'current', e.target.checked)} id="current-work-prof" />
+                                    <label htmlFor="current-work-prof" className="text-sm text-black">Currently Working Here</label>
+                                </div>
+                                <input placeholder="Start Date" type="date" value={newExp.startDate} onChange={e => handleArrayChange(setNewExp, 'startDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                <input placeholder="End Date" type="date" disabled={newExp.current} value={newExp.endDate} onChange={e => handleArrayChange(setNewExp, 'endDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-100 text-black bg-white disabled:text-gray-500" />
+                                <textarea placeholder="Job Description" rows={3} value={newExp.description} onChange={e => handleArrayChange(setNewExp, 'description', e.target.value)} className="sm:col-span-2 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                             </div>
-                            <input placeholder="Start Date" type="date" value={newExp.startDate} onChange={e => handleArrayChange(setNewExp, 'startDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                            <input placeholder="End Date" type="date" disabled={newExp.current} value={newExp.endDate} onChange={e => handleArrayChange(setNewExp, 'endDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-100" />
-                            <textarea placeholder="Job Description" rows={3} value={newExp.description} onChange={e => handleArrayChange(setNewExp, 'description', e.target.value)} className="sm:col-span-2 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+                            <div className="mt-4 flex space-x-2">
+                                <button type="button" onClick={() => { addExperience(); setShowAddExp(false); }} className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">Save Experience</button>
+                                <button type="button" onClick={() => setShowAddExp(false)} className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">Cancel</button>
+                            </div>
                         </div>
-                        <button type="button" onClick={addExperience} className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">Add Experience</button>
-                    </div>
+                    )}
                 </section>
 
                 {/* Skills & Resume */}
                 <section>
                     <h3 className="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Skills & Resume</h3>
+
+                    <div className="bg-blue-50 p-4 rounded-md border border-blue-200 mb-6">
+                        <h4 className="text-sm font-medium text-blue-800 mb-2">Resume PDF</h4>
+
+                        {/* PDF Viewer */}
+                        <div className="mb-4 bg-white p-2 rounded border border-gray-300">
+                            <iframe
+                                src="/api/resume/view"
+                                className="w-full h-96 rounded"
+                                title="Resume PDF"
+                            />
+                        </div>
+
+                        <h4 className="text-sm font-medium text-blue-800 mb-2 mt-4">Update Resume</h4>
+                        <input
+                            type="file"
+                            accept=".pdf"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+
+                                const formData = new FormData();
+                                formData.append("file", file);
+
+                                setLoading(true);
+                                try {
+                                    const res = await fetch('/api/resume/parse', { method: 'POST', body: formData });
+                                    if (res.ok) {
+                                        alert("Resume uploaded successfully! Refresh to see the new PDF.");
+                                        // Optionally trigger a re-fetch or iframe reload here
+                                    } else {
+                                        alert("Failed to upload resume.");
+                                    }
+                                } catch (err) {
+                                    console.error(err);
+                                    alert("Failed to upload resume.");
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+                        />
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Skills</label>
-                        <input type="text" name="skills" value={formData.skills} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                    </div>
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700">Resume Text</label>
-                        <textarea name="resumeText" rows={10} value={formData.resumeText} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+                        <input type="text" name="skills" value={formData.skills} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                     </div>
                 </section>
 
@@ -209,7 +281,7 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Work Auth</span>
-                            <select name="workAuth" value={formData.workAuth} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <select name="workAuth" value={formData.workAuth} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
                                 <option value="">Select...</option>
                                 <option value="Yes">Yes</option>
                                 <option value="No">No</option>
@@ -217,7 +289,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Sponsorship</span>
-                            <select name="sponsorship" value={formData.sponsorship} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <select name="sponsorship" value={formData.sponsorship} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
                                 <option value="">Select...</option>
                                 <option value="Yes">Yes</option>
                                 <option value="No">No</option>
@@ -225,7 +297,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Disability</span>
-                            <select name="disability" value={formData.disability} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <select name="disability" value={formData.disability} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
                                 <option value="">Select...</option>
                                 <option value="Yes">Yes</option>
                                 <option value="No">No</option>
@@ -234,7 +306,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Veteran</span>
-                            <select name="veteran" value={formData.veteran} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <select name="veteran" value={formData.veteran} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
                                 <option value="">Select...</option>
                                 <option value="Yes">Yes</option>
                                 <option value="No">No</option>
@@ -242,7 +314,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Gender</span>
-                            <select name="gender" value={formData.gender} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <select name="gender" value={formData.gender} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
                                 <option value="">Select...</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
@@ -252,7 +324,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">LGBTQ+</span>
-                            <select name="lgbtq" value={formData.lgbtq} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <select name="lgbtq" value={formData.lgbtq} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
                                 <option value="">Select...</option>
                                 <option value="Yes">Yes</option>
                                 <option value="No">No</option>
@@ -261,7 +333,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Race</span>
-                            <select name="race" value={formData.race} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <select name="race" value={formData.race} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
                                 <option value="Asian">Asian</option>
                                 <option value="Black or African American">Black or African American</option>
                                 <option value="Hispanic or Latino">Hispanic or Latino</option>
@@ -274,7 +346,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Hispanic/Latino</span>
-                            <select name="hispanic" value={formData.hispanic} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <select name="hispanic" value={formData.hispanic} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
                                 <option value="">Select...</option>
                                 <option value="Yes">Yes</option>
                                 <option value="No">No</option>
