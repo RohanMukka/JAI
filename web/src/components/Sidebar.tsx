@@ -49,19 +49,7 @@ export default function Sidebar() {
                                         isActive
                                             ? 'bg-indigo-50 text-indigo-600'
                                             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-                                        'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out'
-                                    )}
-                                >
-                                    <item.icon
-                                        className={classNames(
-                                            isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500',
-                                            'mr-3 flex-shrink-0 h-5 w-5'
-                                        )}
-                                        aria-hidden="true"
-                                    />
-                                    {item.name}
-                                        isActive ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-                                        'group flex items-center px-2 py-2 text-sm font-medium rounded-md justify-between'
+                                        'group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out'
                                     )}
                                 >
                                     <div className="flex items-center">
