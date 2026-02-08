@@ -28,6 +28,53 @@ export default function JobDetailsPage() {
 
     useEffect(() => {
         const fetchJobDetails = async () => {
+            // Handle Hardcoded IXL Job
+            if (id === 'ixl-new-grad-1') {
+                setJob({
+                    job_id: 'ixl-new-grad-1',
+                    employer_name: 'IXL Learning',
+                    job_title: 'Software Engineer, New Grad',
+                    job_city: 'Raleigh',
+                    job_state: 'NC',
+                    job_country: 'USA',
+                    job_is_remote: false,
+                    job_posted_at_timestamp: Date.now() / 1000,
+                    job_apply_link: 'https://www.ixl.com/company/careers/apply?gh_jid=8364780002&gh_src=9ab9c2a12',
+                    job_description: `Software Engineer, New Grad
+Raleigh, NC
+IXL Learning, developer of personalized learning products used by millions of people globally, is seeking new graduates who have a passion for technology and education. You will dive into our code base and immediately contribute to our three extremely impactful educational products and build new, innovative products. You can fine-tune your existing skills and learn new ones as you work on one of our many teams. You’ll be able to work with our Core Technology team in back-end engineering, Front-end group using cutting-edge technologies like React, Mobile team in implementing iOS and Android apps, or our Full-stack teams who seek engineers interested in doing it all.
+
+We find it immensely satisfying to develop products that impact the lives of millions, and we are eager to have you join our team.
+
+This is a full-time position in our Raleigh, NC area office. This position will be in-person 5 days a week during the first 6 months of onboarding. H1B sponsorship is available for this position. #LI-TL1 
+
+WHAT YOU'LL BE DOING
+As a Software Engineer, you will build the back-end wiring, application logic, and UI that engage our users. You will find and use the best technologies to add features and create new products. You’ll be involved in all aspects of the development process – including design, coding, testing, debugging, and tuning. You will own your projects from start to end as they travel through our fast-paced development cycle. In addition to working with your fellow engineers, you’ll collaborate with other teams to design amazing products that meet the needs of our users, who are students and teachers all over the world.
+
+TECHNOLOGY
+Our server-side stack currently includes Linux, Apache, Java, Scala, Python, and Oracle. For our iOS app development, we use Swift. Our front-end code is written in JavaScript (including the React and D3 libraries, and ES6). Of course, the specific technologies and languages you use will vary by project and according to your own interests or specialization areas.
+
+WHAT WE'RE LOOKING FOR
+Bachelor's or advanced degree in computer science or a related discipline
+Excellent programming skills
+Strong analytical-reasoning and problem-solving skills
+Ability to work both independently and with a wide variety of teams
+Knowledge of Unix, Python, Java, SQL, or JavaScript is a plus
+Passion for improving education through technology
+ABOUT IXL LEARNING
+IXL Learning is the country's largest EdTech company. We reach millions of learners through our diverse range of products. For example:
+
+1 in 4 students in the United States uses IXL.com
+Rosetta Stone provides an immersive learning experience for 25 languages
+Wyzant is the nation's largest community of tutors, covering 300+ subjects
+Teachers Pay Teachers (TPT) is a comprehensive marketplace for millions of educator-created resources
+Our mission is to create innovative products that will make a real, positive difference for learners and educators and we're looking for passionate, mission-minded people to join us in achieving this goal. We have a unique culture at IXL that fosters collaboration and the open exchange of ideas. We value our team and treat one another with kindness and respect. We approach our work with passion, tenacity, and authenticity. We find it immensely satisfying to develop products that impact the lives of millions and we are eager to have you join our team.`,
+                    employer_logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/IXL_Learning_logo.svg/1200px-IXL_Learning_logo.svg.png'
+                });
+                setLoading(false);
+                return;
+            }
+
             try {
                 // Pass encoded ID to avoid path parsing issues with Base64 '=='
                 const res = await fetch(`/api/jobs/${encodeURIComponent(id)}`);
