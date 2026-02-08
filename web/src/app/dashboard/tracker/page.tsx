@@ -245,7 +245,7 @@ export default function TrackerPage() {
 
             // Find a target application to simulate an update (e.g., TechCorp)
             const targetApp = applications.find(app => app.companyName === 'TechCorp' && app.status === 'Applied');
-
+            //if condition
             if (targetApp) {
                 setApplications(prev => prev.map(app =>
                     app.id === targetApp.id ? { ...app, status: 'Interview' } : app
