@@ -140,3 +140,54 @@ document.getElementById('automateBtn').addEventListener('click', async () => {
         btn.innerHTML = 'Try Again';
     }
 });
+
+// Autofill Button Logic
+document.getElementById('autofillBtn').addEventListener('click', async () => {
+    const statusEl = document.getElementById('status');
+    const btn = document.getElementById('autofillBtn');
+    
+    // Check Auth
+    const { authToken } = await chrome.storage.local.get(['authToken']);
+    if (!authToken) {
+         statusEl.textContent = 'Please Login first!';
+         statusEl.style.color = 'red';
+         return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = 'Filling...';
+    statusEl.textContent = 'Fetching Profile...';
+
+    try {
+        // 1. Fetch Profile
+        console.log("JAI: Fetching profile from", `${JAI_WEB_URL}/api/profile`);
+        const response = await fetch(`${JAI_WEB_URL}/api/profile`);
+        if (!response.ok) throw new Error("Failed to fetch profile. " + response.statusText);
+        
+        const profile = await response.json();
+        console.log("JAI: Profile fetched successfully:", profile);
+        
+        statusEl.textContent = 'Injecting Script...';
+
+        // 2. Inject & Fill
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        console.log("JAI: Injecting content script into tab:", tab.id);
+        
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['scripts/content_autofill.js']
+        });
+        
+        chrome.tabs.sendMessage(tab.id, { action: "autofill_profile", profile: profile }, (response) => {
+            statusEl.textContent = 'Done!';
+            btn.innerHTML = 'Autofill Application';
+            btn.disabled = false;
+        });
+
+    } catch (e) {
+        console.error(e);
+        statusEl.textContent = 'Error: ' + e.message;
+        btn.disabled = false;
+        btn.innerHTML = 'Try Again';
+    }
+});

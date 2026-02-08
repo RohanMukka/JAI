@@ -11,8 +11,10 @@ export async function GET() {
     }
 
     const db = await getDb();
+    // Try finding by userId first, then email (legacy)
     // @ts-ignore
-    const profile = await db.collection("profiles").findOne({ userId: session.user.id || session.user.email });
+    const query = { $or: [{ userId: session.user.id }, { email: session.user.email }] };
+    const profile = await db.collection("profiles").findOne(query);
 
     return NextResponse.json(profile || {});
 }
