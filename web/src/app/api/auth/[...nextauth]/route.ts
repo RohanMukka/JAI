@@ -1,65 +1,46 @@
 
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { getDb } from "@/lib/mongodb";
 
-export const authOptions: NextAuthOptions = {
-    debug: true,
-    secret: process.env.NEXTAUTH_SECRET,
+
+export const authOptions: AuthOptions = {
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            authorization: {
+                params: {
+                    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+                },
+            },
         }),
     ],
-    session: {
-        strategy: "jwt",
-    },
     callbacks: {
-        async signIn({ user, account, profile }) {
-            if (account?.provider === "google") {
-                try {
-                    console.log("Attempting to connect to MongoDB for user upsert...");
-                    const db = await getDb();
-                    console.log("Connected to MongoDB, upserting user...");
-                    await db.collection("users").updateOne(
-                        { email: user.email },
-                        {
-                            $set: {
-                                name: user.name,
-                                image: user.image,
-                                email: user.email,
-                                updatedAt: new Date(),
-                            },
-                            $setOnInsert: {
-                                createdAt: new Date(),
-                            },
-                        },
-                        { upsert: true }
-                    );
-                    console.log("User upserted successfully.");
-                    return true;
-                } catch (error) {
-                    console.error("FULL MONGODB ERROR IN SIGNIN:", error);
-                    return false;
-                }
+        async jwt({ token, account }) {
+            // Persist the access_token to the token right after signin
+            if (account) {
+                token.accessToken = account.access_token;
+                token.provider = account.provider;
             }
-            return true;
+            return token;
         },
-        async session({ session, token }) {
-            if (session.user && token.sub) {
-                // Add userId to session
-                // @ts-ignore
-                session.user.id = token.sub;
-            }
+        async session({ session, token }: { session: any; token: any }) { // Using any for quick mvp, should definetypes
+            // Send properties to the client, like an access_token from a provider.
+            session.accessToken = token.accessToken;
+            session.provider = token.provider;
             return session;
         },
     },
-    pages: {
-        signIn: '/login',
-    },
+    secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
+
+// Debug: Check if Google Client ID is present
+if (!process.env.GOOGLE_CLIENT_ID) {
+    console.warn("⚠️ WARNING: GOOGLE_CLIENT_ID is missing or empty in .env.local!");
+} else {
+    console.log("✅ GOOGLE_CLIENT_ID is set:", process.env.GOOGLE_CLIENT_ID.substring(0, 5) + "...");
+}
 
 export { handler as GET, handler as POST };
