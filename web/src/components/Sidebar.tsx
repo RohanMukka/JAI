@@ -8,15 +8,17 @@ import {
     UserIcon,
     ChartBarIcon,
     ClockIcon,
-    AdjustmentsHorizontalIcon
+    AdjustmentsHorizontalIcon,
+    BellIcon
 } from '@heroicons/react/24/outline'; // You might need to install heroicons if not present, otherwise use simple svgs
+import { useAIAgent } from '@/context/AIAgentContext';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Jobs', href: '/dashboard/jobs', icon: BriefcaseIcon },
     { name: 'Tracker', href: '/dashboard/tracker', icon: ChartBarIcon },
-    { name: 'Future Me', href: '/dashboard/future-me', icon: ClockIcon },
     { name: 'Filters', href: '/dashboard/filters', icon: AdjustmentsHorizontalIcon },
+    { name: 'Inbox', href: '/dashboard/inbox', icon: BellIcon },
     { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
 ];
 
@@ -26,6 +28,7 @@ function classNames(...classes: string[]) {
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const { unreadCount } = useAIAgent();
 
     return (
         <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
@@ -43,17 +46,24 @@ export default function Sidebar() {
                                     href={item.href}
                                     className={classNames(
                                         isActive ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-                                        'group flex items-center px-2 py-2 text-sm font-medium rounded-md'
+                                        'group flex items-center px-2 py-2 text-sm font-medium rounded-md justify-between'
                                     )}
                                 >
-                                    <item.icon
-                                        className={classNames(
-                                            isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500',
-                                            'mr-3 flex-shrink-0 h-6 w-6'
-                                        )}
-                                        aria-hidden="true"
-                                    />
-                                    {item.name}
+                                    <div className="flex items-center">
+                                        <item.icon
+                                            className={classNames(
+                                                isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500',
+                                                'mr-3 flex-shrink-0 h-6 w-6'
+                                            )}
+                                            aria-hidden="true"
+                                        />
+                                        {item.name}
+                                    </div>
+                                    {item.name === 'Inbox' && unreadCount > 0 && (
+                                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                            {unreadCount}
+                                        </span>
+                                    )}
                                 </Link>
                             );
                         })}
