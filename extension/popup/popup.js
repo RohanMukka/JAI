@@ -159,9 +159,8 @@ document.getElementById('autofillBtn').addEventListener('click', async () => {
     statusEl.textContent = 'Fetching Profile...';
 
     try {
-        // 1. Fetch Profile
         console.log("JAI: Fetching profile from", `${JAI_WEB_URL}/api/profile`);
-        const response = await fetch(`${JAI_WEB_URL}/api/profile`);
+        const response = await fetch(`${JAI_WEB_URL}/api/profile`, { cache: "no-store" });
         if (!response.ok) throw new Error("Failed to fetch profile. " + response.statusText);
         
         const profile = await response.json();
@@ -179,7 +178,14 @@ document.getElementById('autofillBtn').addEventListener('click', async () => {
         });
         
         chrome.tabs.sendMessage(tab.id, { action: "autofill_profile", profile: profile }, (response) => {
-            statusEl.textContent = 'Done!';
+            // Check for report
+            if (response && response.report) {
+                renderReport(response.report);
+                statusEl.textContent = 'Done! Check report below.';
+            } else {
+                statusEl.textContent = 'Done!';
+            }
+            
             btn.innerHTML = 'Autofill Application';
             btn.disabled = false;
         });
@@ -191,3 +197,53 @@ document.getElementById('autofillBtn').addEventListener('click', async () => {
         btn.innerHTML = 'Try Again';
     }
 });
+
+function renderReport(report) {
+    const list = document.getElementById('reportList');
+    if (!list) return;
+    
+    list.innerHTML = '';
+    list.classList.remove('hidden');
+
+    if (!report || report.length === 0) {
+        list.innerHTML = '<div style="padding:5px; text-align:center; color: var(--text-secondary);">No fields processed.</div>';
+        return;
+    }
+
+    report.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'report-item';
+        
+        let icon = '';
+        let statusClass = '';
+        
+        switch (item.status) {
+            case 'filled': 
+                icon = '\u2705'; // ✅
+                statusClass = 'filled'; 
+                break;
+            case 'not_found': 
+                icon = '\u274C'; // ❌
+                statusClass = 'not_found'; 
+                break;
+            case 'error': 
+                icon = '\u26A0\uFE0F'; // ⚠️
+                statusClass = 'error'; 
+                break;
+            case 'empty_in_profile': 
+                icon = '\u26AA'; // ⚪
+                statusClass = 'empty_in_profile'; 
+                break;
+        }
+
+        // Clean up field name for display
+        const fieldName = item.field.charAt(0).toUpperCase() + item.field.slice(1);
+        const titleText = item.error ? item.error : item.status;
+
+        div.innerHTML = `
+            <span style="font-weight:500;">${fieldName}</span>
+            <span class="report-status ${statusClass}" title="${titleText}">${icon}</span>
+        `;
+        list.appendChild(div);
+    });
+}

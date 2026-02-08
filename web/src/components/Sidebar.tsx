@@ -17,6 +17,7 @@ const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Jobs', href: '/dashboard/jobs', icon: BriefcaseIcon },
     { name: 'Tracker', href: '/dashboard/tracker', icon: ChartBarIcon },
+    { name: 'Future Me', href: '/dashboard/future-me', icon: ClockIcon },
     { name: 'Filters', href: '/dashboard/filters', icon: AdjustmentsHorizontalIcon },
     { name: 'Inbox', href: '/dashboard/inbox', icon: BellIcon },
     { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
@@ -33,11 +34,11 @@ export default function Sidebar() {
     return (
         <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
             <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
-                <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-                    <div className="flex items-center flex-shrink-0 px-4">
-                        <h1 className="text-xl font-bold text-indigo-600">JAI</h1>
-                    </div>
-                    <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
+                <div className="flex items-center flex-shrink-0 px-6 pt-6 pb-4">
+                    <h1 className="text-2xl font-bold text-indigo-600 tracking-tight">JAI</h1>
+                </div>
+                <div className="flex-1 flex flex-col overflow-y-auto">
+                    <nav className="flex-1 px-4 space-y-1 mt-4">
                         {navigation.map((item) => {
                             const isActive = pathname === item.href;
                             return (
@@ -45,8 +46,10 @@ export default function Sidebar() {
                                     key={item.name}
                                     href={item.href}
                                     className={classNames(
-                                        isActive ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-                                        'group flex items-center px-2 py-2 text-sm font-medium rounded-md justify-between'
+                                        isActive
+                                            ? 'bg-indigo-50 text-indigo-600'
+                                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                                        'group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out'
                                     )}
                                 >
                                     <div className="flex items-center">
@@ -69,10 +72,10 @@ export default function Sidebar() {
                         })}
                     </nav>
                 </div>
-                <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+                <div className="flex-shrink-0 flex border-t border-gray-100 p-4">
                     <Link href="/api/auth/signout" className="flex-shrink-0 w-full group block">
                         <div className="flex items-center">
-                            <div>
+                            <div className="ml-3">
                                 <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Sign Out</p>
                             </div>
                         </div>

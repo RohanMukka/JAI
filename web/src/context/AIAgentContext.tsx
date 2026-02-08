@@ -17,7 +17,12 @@ type AIAgentContextType = {
     addNotification: (title: string, message: string, type?: Notification['type']) => void;
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
-    triggerAgent: (text: string) => void; // Kept for backward compatibility with Tracker
+    triggerAgent: (text: string) => void;
+    atmosphere: {
+        mood_theme: 'default' | 'calm' | 'energetic';
+        action?: string;
+    };
+    updateAtmosphere: (mood: 'default' | 'calm' | 'energetic', action?: string) => void;
 };
 
 const AIAgentContext = createContext<AIAgentContextType | undefined>(undefined);
@@ -33,23 +38,20 @@ export function AIAgentProvider({ children }: { children: ReactNode }) {
             type: 'info'
         }
     ]);
+    const [atmosphere, setAtmosphere] = useState<AIAgentContextType['atmosphere']>({ mood_theme: 'default' });
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const addNotification = (title: string, message: string, type: Notification['type'] = 'info') => {
-        // Wrap in setTimeout to avoid "Cannot update component while rendering" errors
         setTimeout(() => {
             setNotifications(prev => {
-                // Check for duplicates within the last second
                 const now = new Date();
                 const recentDuplicate = prev.find(n =>
                     n.title === title &&
                     n.message === message &&
                     (now.getTime() - n.timestamp.getTime() < 1000)
                 );
-
                 if (recentDuplicate) return prev;
-
                 return [{
                     id: Date.now().toString(),
                     title,
@@ -70,13 +72,25 @@ export function AIAgentProvider({ children }: { children: ReactNode }) {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     };
 
-    // Alias for compatibility: Tracker calls this to "trigger agent", now it adds a notification
     const triggerAgent = (text: string) => {
         addNotification('System Update', text, 'info');
     };
 
+    const updateAtmosphere = (mood: 'default' | 'calm' | 'energetic', action?: string) => {
+        setAtmosphere({ mood_theme: mood, action });
+    };
+
     return (
-        <AIAgentContext.Provider value={{ notifications, unreadCount, addNotification, markAsRead, markAllAsRead, triggerAgent }}>
+        <AIAgentContext.Provider value={{
+            notifications,
+            unreadCount,
+            addNotification,
+            markAsRead,
+            markAllAsRead,
+            triggerAgent,
+            atmosphere,
+            updateAtmosphere
+        }}>
             {children}
         </AIAgentContext.Provider>
     );

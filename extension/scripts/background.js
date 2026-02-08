@@ -5,6 +5,11 @@ try {
     console.error("JAI: Failed to load config.js. Make sure it exists!", e);
 }
 
+// Side Panel Logic
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error(error));
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'generate_and_automate') {
     handleAutomation(request.jdText, sendResponse);
