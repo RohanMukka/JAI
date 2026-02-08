@@ -2,69 +2,71 @@
 <html>
 
 <head>
-    <style>
-        body {
-            width: 320px;
-            font-family: 'Segoe UI', sans-serif;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        h3 {
-            margin: 0 0 15px 0;
-            color: #2c3e50;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 15px;
-            font-weight: bold;
-            transition: background-color 0.2s;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: default;
-        }
-
-        #status {
-            margin-top: 15px;
-            font-size: 13px;
-            color: #555;
-            text-align: center;
-            white-space: pre-wrap;
-        }
-
-        .settings-link {
-            margin-top: 10px;
-            font-size: 11px;
-            color: #999;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-    </style>
+    <link rel="stylesheet" href="popup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <h3>JAI Resume Tailor</h3>
+    <!-- Header -->
+    <header>
+        <div class="logo-container" style="justify-content: center; width: 100%;">
+            <img src="../icons/icon48.png" alt="JAI Logo" style="width: 28px; height: 28px;">
+        </div>
+    </header>
 
-    <button id="automateBtn">Tailor Resume & Download PDF</button>
+    <!-- Main Content -->
+    <main>
+        <!-- Login Section -->
+        <div id="loginSection" class="section">
+            <div>
+                <h1>Welcome Back</h1>
+                <p>Sign in to start optimizing your job applications.</p>
+            </div>
 
-    <div id="status">Ready</div>
+            <button id="loginBtn" class="btn btn-primary">
+                Login with JAI Web
+            </button>
 
-    <div class="settings-link" id="statsLink">Check Settings</div>
+            <button id="checkCxnBtn" class="btn btn-secondary">
+                Check Connection
+            </button>
+
+            <!-- Manual Fallback Link -->
+            <div style="margin-top: 10px;">
+                <span id="manualLink" class="footer-link" style="text-decoration: underline;">Enter Token
+                    Manually</span>
+            </div>
+
+            <!-- Manual Input Form -->
+            <div id="manualInput" class="manual-input-container">
+                <p style="text-align: left; margin-bottom: 5px; font-size: 12px;">Paste Session Token:</p>
+                <input type="text" id="tokenInput" placeholder="eyJhbGciOi...">
+                <button id="saveTokenBtn" class="btn btn-primary" style="padding: 8px;">Save Token</button>
+            </div>
+        </div>
+
+        <!-- Main UI (Hidden by default) -->
+        <div id="mainSection" class="section hidden">
+            <div>
+                <h1>Tailor Your Resume</h1>
+                <p>Optimize your resume for the job description on the current tab.</p>
+            </div>
+
+            <button id="automateBtn" class="btn btn-primary" style="margin-top: 10px;">
+                Generate & Download PDF
+            </button>
+
+            <div class="status-card">
+                <div id="status" style="font-size: 13px; font-weight: 500;">Ready to optimize</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div id="statsLink" class="footer-link">Settings</div>
+        <div id="logoutBtn" class="footer-link">Logout</div>
+    </footer>
 
     <script src="popup.js"></script>
 </body>

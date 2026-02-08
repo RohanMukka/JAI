@@ -26,12 +26,15 @@ export async function POST(req: Request) {
     const data = await req.json();
     const db = await getDb();
 
+    // Strip _id if present to avoid immutable field error
+    const { _id, ...updateData } = data;
+
     await db.collection("profiles").updateOne(
         // @ts-ignore
         { userId: session.user.id || session.user.email },
         {
             $set: {
-                ...data,
+                ...updateData,
                 updatedAt: new Date(),
                 // @ts-ignore
                 userId: session.user.id || session.user.email, // Ensure userId is set

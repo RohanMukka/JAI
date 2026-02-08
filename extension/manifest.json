@@ -8,11 +8,13 @@
     "storage",
     "scripting",
     "downloads",
-    "clipboardWrite"
+    "clipboardWrite",
+    "cookies"
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
-    "https://www.overleaf.com/*"
+    "https://www.overleaf.com/*",
+    "http://localhost:3000/*"
   ],
   "icons": {
     "16": "icons/icon16.png",
