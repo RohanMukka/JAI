@@ -3,21 +3,27 @@
 
 import Sidebar from '@/components/Sidebar';
 
+import { AIAgentProvider } from '@/context/AIAgentContext';
+import AIAgent from '@/components/AIAgent';
+
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
     return (
-        <div className="min-h-screen bg-gray-100 flex">
-            <Sidebar />
-            <div className="flex-1 flex flex-col md:pl-64 transition-all duration-300">
-                <main className="flex-1 py-10">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        {children}
-                    </div>
-                </main>
+        <AIAgentProvider>
+            <div className="min-h-screen bg-gray-100 flex">
+                <Sidebar />
+                <AIAgent />
+                <div className="flex-1 flex flex-col md:pl-64 transition-all duration-300">
+                    <main className="flex-1 py-10">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            {children}
+                        </div>
+                    </main>
+                </div>
             </div>
-        </div>
+        </AIAgentProvider>
     );
 }

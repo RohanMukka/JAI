@@ -8,4 +8,4 @@ export default withAuth({
     },
 });
 
-export const config = { matcher: ["/dashboard/:path*", "/session/:path*", "/onboarding/:path*"] };
+export const config = { matcher: [] }; // ["/dashboard/:path*", "/session/:path*", "/onboarding/:path*"] };
