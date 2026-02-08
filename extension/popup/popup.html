@@ -2,6 +2,7 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
     <link rel="stylesheet" href="popup.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -60,6 +61,11 @@
                 style="margin-top: 10px; border-color: var(--primary-color); color: var(--primary-color);">
                 Autofill Application
             </button>
+
+            <!-- Autofill Report (Hidden by default) -->
+            <div id="reportList" class="report-list hidden">
+                <!-- Items injected by JS -->
+            </div>
 
             <div class="status-card">
                 <div id="status" style="font-size: 13px; font-weight: 500;">Ready to optimize</div>
