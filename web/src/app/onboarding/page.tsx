@@ -46,6 +46,7 @@ export default function OnboardingPage() {
         phone: '',
         location: '',
         linkedin: '',
+        github: '',
         portfolio: '',
 
         // Education (Array)
@@ -56,7 +57,7 @@ export default function OnboardingPage() {
 
         // Skills & Resume
         skills: '', // comma separated for now
-        resumeText: '',
+
 
         // Demographics
         workAuth: '',
@@ -104,9 +105,24 @@ export default function OnboardingPage() {
     const handleSubmit = async () => {
         setLoading(true);
         try {
+            // Create a payload copy to avoid mutating state directly
+            const payload = { ...formData };
+
+            // Auto-save pending education if valid
+            if (newEdu.school.trim() || newEdu.degree.trim()) {
+                payload.education = [...payload.education, newEdu];
+            }
+
+            // Auto-save pending experience if valid
+            if (newExp.company.trim() || newExp.role.trim()) {
+                payload.experience = [...payload.experience, newExp];
+            }
+
+            console.log("Submitting Onboarding Data:", payload);
+
             await fetchApi('/api/onboarding', {
                 method: 'POST',
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
             router.push('/dashboard');
         } catch (error) {
@@ -154,11 +170,31 @@ export default function OnboardingPage() {
                                 <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">First Name</label>
-                                        <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
+                                        <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                                        <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
+                                        <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                        <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Location</label>
+                                        <input type="text" name="location" value={formData.location} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">LinkedIn URL</label>
+                                        <input type="text" name="linkedin" value={formData.linkedin} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">GitHub URL</label>
+                                        <input type="text" name="github" value={formData.github} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">Portfolio URL</label>
+                                        <input type="text" name="portfolio" value={formData.portfolio} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                                     </div>
                                 </div>
                             </div>
@@ -180,10 +216,10 @@ export default function OnboardingPage() {
                                 <div className="border-t border-gray-200 pt-4 mt-4">
                                     <h4 className="text-sm font-medium text-gray-700 mb-2">Add Education</h4>
                                     <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
-                                        <input placeholder="School Name" value={newEdu.school} onChange={e => handleArrayChange(setNewEdu, 'school', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
-                                        <input placeholder="Degree" value={newEdu.degree} onChange={e => handleArrayChange(setNewEdu, 'degree', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
-                                        <input placeholder="Start Date" type="date" value={newEdu.startDate} onChange={e => handleArrayChange(setNewEdu, 'startDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
-                                        <input placeholder="End Date" type="date" value={newEdu.endDate} onChange={e => handleArrayChange(setNewEdu, 'endDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
+                                        <input placeholder="School Name" value={newEdu.school} onChange={e => handleArrayChange(setNewEdu, 'school', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                        <input placeholder="Degree" value={newEdu.degree} onChange={e => handleArrayChange(setNewEdu, 'degree', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                        <input placeholder="Start Date" type="date" value={newEdu.startDate} onChange={e => handleArrayChange(setNewEdu, 'startDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                        <input placeholder="End Date" type="date" value={newEdu.endDate} onChange={e => handleArrayChange(setNewEdu, 'endDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                                     </div>
                                     <button type="button" onClick={addEducation} className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
                                         Add Education
@@ -209,15 +245,15 @@ export default function OnboardingPage() {
                                 <div className="border-t border-gray-200 pt-4 mt-4">
                                     <h4 className="text-sm font-medium text-gray-700 mb-2">Add Experience</h4>
                                     <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
-                                        <input placeholder="Company Name" value={newExp.company} onChange={e => handleArrayChange(setNewExp, 'company', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
-                                        <input placeholder="Role" value={newExp.role} onChange={e => handleArrayChange(setNewExp, 'role', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
+                                        <input placeholder="Company Name" value={newExp.company} onChange={e => handleArrayChange(setNewExp, 'company', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                        <input placeholder="Role" value={newExp.role} onChange={e => handleArrayChange(setNewExp, 'role', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                                         <div className="flex items-center space-x-2 sm:col-span-2">
                                             <input type="checkbox" checked={newExp.current} onChange={e => handleArrayChange(setNewExp, 'current', e.target.checked)} id="current-work" />
                                             <label htmlFor="current-work" className="text-sm text-gray-700">Currently Working Here</label>
                                         </div>
-                                        <input placeholder="Start Date" type="date" value={newExp.startDate} onChange={e => handleArrayChange(setNewExp, 'startDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
-                                        <input placeholder="End Date" type="date" disabled={newExp.current} value={newExp.endDate} onChange={e => handleArrayChange(setNewExp, 'endDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-100 text-gray-900" />
-                                        <textarea placeholder="Job Description" rows={3} value={newExp.description} onChange={e => handleArrayChange(setNewExp, 'description', e.target.value)} className="sm:col-span-2 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
+                                        <input placeholder="Start Date" type="date" value={newExp.startDate} onChange={e => handleArrayChange(setNewExp, 'startDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                        <input placeholder="End Date" type="date" disabled={newExp.current} value={newExp.endDate} onChange={e => handleArrayChange(setNewExp, 'endDate', e.target.value)} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-100 text-black bg-white disabled:text-gray-500" />
+                                        <textarea placeholder="Job Description" rows={3} value={newExp.description} onChange={e => handleArrayChange(setNewExp, 'description', e.target.value)} className="sm:col-span-2 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                                     </div>
                                     <button type="button" onClick={addExperience} className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
                                         Add Experience
@@ -232,7 +268,7 @@ export default function OnboardingPage() {
                                 <h3 className="text-lg font-medium leading-6 text-gray-900">Skills & Resume</h3>
 
                                 <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-                                    <h4 className="text-sm font-medium text-blue-800 mb-2">Auto-fill from Resume</h4>
+                                    <h4 className="text-sm font-medium text-blue-800 mb-2">Upload Resume (PDF)</h4>
                                     <input
                                         type="file"
                                         accept=".pdf"
@@ -245,43 +281,30 @@ export default function OnboardingPage() {
 
                                             setLoading(true);
                                             try {
-                                                const res = await fetch('/api/resume/parse', {
+                                                const res = await fetch('/api/resume/parse', { // We kept the route name "parse" but it only uploads now
                                                     method: 'POST',
                                                     body: formData,
                                                 });
-                                                const data = await res.json();
-                                                if (data.structuredData) {
-                                                    const sd = data.structuredData;
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        firstName: sd.firstName || prev.firstName,
-                                                        lastName: sd.lastName || prev.lastName,
-                                                        education: [...prev.education, ...(sd.education || [])],
-                                                        experience: [...prev.experience, ...(sd.experience || [])],
-                                                        skills: sd.skills || prev.skills,
-                                                        resumeText: data.text || prev.resumeText,
-                                                    }));
-                                                    alert("Resume parsed successfully! specific fields have been auto-filled.");
+                                                if (res.ok) {
+                                                    alert("Resume uploaded successfully!");
+                                                } else {
+                                                    alert("Failed to upload resume.");
                                                 }
                                             } catch (err) {
                                                 console.error(err);
-                                                alert("Failed to parse resume.");
+                                                alert("Failed to upload resume.");
                                             } finally {
                                                 setLoading(false);
                                             }
                                         }}
                                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
                                     />
-                                    <p className="text-xs text-blue-600 mt-1">Upload a PDF resume to auto-fill your education, experience, and skills.</p>
+                                    <p className="text-xs text-blue-600 mt-1">Upload your resume PDF to store it in your profile.</p>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Skills (comma separated)</label>
-                                    <input type="text" name="skills" value={formData.skills} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" placeholder="e.g. React, Node.js, Python" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Resume Text (Auto-extracted)</label>
-                                    <textarea name="resumeText" rows={10} value={formData.resumeText} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" placeholder="Resume text will appear here..." />
+                                    <input type="text" name="skills" value={formData.skills} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" placeholder="e.g. React, Node.js, Python" />
                                 </div>
                             </div>
                         )}
