@@ -10,7 +10,7 @@ export default function OnboardingPage() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(true);
-    const totalSteps = 5;
+    const totalSteps = 6;
 
     useEffect(() => {
         fetchApi('/api/profile')
@@ -43,11 +43,23 @@ export default function OnboardingPage() {
         // Personal
         firstName: '',
         lastName: '',
+        middleName: '',
         phone: '',
+        phoneCountryCode: '',
+        phoneDeviceType: '',
+        phoneExtension: '',
         location: '',
         linkedin: '',
         github: '',
         portfolio: '',
+
+        // Address
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: '',
 
         // Education (Array)
         education: [] as any[],
@@ -58,6 +70,9 @@ export default function OnboardingPage() {
         // Skills & Resume
         skills: '', // comma separated for now
 
+        // Job Prefs
+        desiredSalary: '',
+        noticePeriod: '',
 
         // Demographics
         workAuth: '',
@@ -173,17 +188,37 @@ export default function OnboardingPage() {
                                         <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                                     </div>
                                     <div>
+                                        <label className="block text-sm font-medium text-gray-700">Middle Name</label>
+                                        <input type="text" name="middleName" value={formData.middleName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700">Last Name</label>
                                         <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Phone</label>
-                                        <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-medium text-gray-700">Country Code</label>
+                                            <input type="text" name="phoneCountryCode" placeholder="+1" value={formData.phoneCountryCode} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                            <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Location</label>
-                                        <input type="text" name="location" value={formData.location} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                        <label className="block text-sm font-medium text-gray-700">Device Type</label>
+                                        <select name="phoneDeviceType" value={formData.phoneDeviceType} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white">
+                                            <option value="">Select...</option>
+                                            <option value="Mobile">Mobile</option>
+                                            <option value="Home">Home</option>
+                                            <option value="Work">Work</option>
+                                        </select>
                                     </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Extension</label>
+                                        <input type="text" name="phoneExtension" value={formData.phoneExtension} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                                    </div>
+
                                     <div className="sm:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700">LinkedIn URL</label>
                                         <input type="text" name="linkedin" value={formData.linkedin} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
@@ -200,8 +235,45 @@ export default function OnboardingPage() {
                             </div>
                         )}
 
-                        {/* STEP 2: Education */}
+                        {/* STEP 2: Address */}
                         {step === 2 && (
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-medium leading-6 text-gray-900">Address Details</h3>
+                                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">Address Line 1</label>
+                                        <input type="text" name="addressLine1" value={formData.addressLine1} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">Address Line 2 (Optional)</label>
+                                        <input type="text" name="addressLine2" value={formData.addressLine2} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">City</label>
+                                        <input type="text" name="city" value={formData.city} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">State/Province</label>
+                                        <input type="text" name="state" value={formData.state} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Zip/Postal Code</label>
+                                        <input type="text" name="zip" value={formData.zip} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Country</label>
+                                        <input type="text" name="country" value={formData.country} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">Location (Summary, e.g. "New York, NY")</label>
+                                        <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder="Displayed on your profile" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white" />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 3: Education */}
+                        {step === 3 && (
                             <div className="space-y-6">
                                 <h3 className="text-lg font-medium leading-6 text-gray-900">Education</h3>
 
@@ -228,8 +300,8 @@ export default function OnboardingPage() {
                             </div>
                         )}
 
-                        {/* STEP 3: Experience */}
-                        {step === 3 && (
+                        {/* STEP 4: Experience */}
+                        {step === 4 && (
                             <div className="space-y-6">
                                 <h3 className="text-lg font-medium leading-6 text-gray-900">Work Experience</h3>
 
@@ -262,8 +334,8 @@ export default function OnboardingPage() {
                             </div>
                         )}
 
-                        {/* STEP 4: Skills & Resume */}
-                        {step === 4 && (
+                        {/* STEP 5: Skills & Resume */}
+                        {step === 5 && (
                             <div className="space-y-6">
                                 <h3 className="text-lg font-medium leading-6 text-gray-900">Skills & Resume</h3>
 
@@ -309,12 +381,23 @@ export default function OnboardingPage() {
                             </div>
                         )}
 
-                        {/* STEP 5: Demographics */}
-                        {step === 5 && (
+                        {/* STEP 6: Demographics & Job Prefs */}
+                        {step === 6 && (
                             <div className="space-y-6">
-                                <h3 className="text-lg font-medium leading-6 text-gray-900">Demographics & Authorization</h3>
+                                <h3 className="text-lg font-medium leading-6 text-gray-900">Demographics & Preferences</h3>
 
                                 <div className="grid grid-cols-1 gap-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Desired Salary (USD)</label>
+                                            <input type="text" name="desiredSalary" value={formData.desiredSalary} onChange={handleChange} placeholder="e.g. 100000" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Notice Period</label>
+                                            <input type="text" name="noticePeriod" value={formData.noticePeriod} onChange={handleChange} placeholder="e.g. 2 weeks" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900" />
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <span className="block text-sm font-medium text-gray-700 mb-1">Are you authorized to work in the US?</span>
                                         <select name="workAuth" value={formData.workAuth} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900">
@@ -353,22 +436,22 @@ export default function OnboardingPage() {
                                     </div>
 
                                     <div>
+                                        <span className="block text-sm font-medium text-gray-700 mb-1">Do you identify as LGBTQ+?</span>
+                                        <select name="lgbtq" value={formData.lgbtq} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900">
+                                            <option value="">Select...</option>
+                                            <option value="Yes">Yes</option>
+                                            <option value="No">No</option>
+                                            <option value="Prefer not to say">Prefer not to say</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
                                         <span className="block text-sm font-medium text-gray-700 mb-1">What is your gender?</span>
                                         <select name="gender" value={formData.gender} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900">
                                             <option value="">Select...</option>
                                             <option value="Male">Male</option>
                                             <option value="Female">Female</option>
                                             <option value="Non-binary">Non-binary</option>
-                                            <option value="Prefer not to say">Prefer not to say</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <span className="block text-sm font-medium text-gray-700 mb-1">Do you identify as LGBTQ+?</span>
-                                        <select name="lgbtq" value={formData.lgbtq} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900">
-                                            <option value="">Select...</option>
-                                            <option value="Yes">Yes</option>
-                                            <option value="No">No</option>
                                             <option value="Prefer not to say">Prefer not to say</option>
                                         </select>
                                     </div>
@@ -387,6 +470,7 @@ export default function OnboardingPage() {
                                             <option value="Prefer not to say">Prefer not to say</option>
                                         </select>
                                     </div>
+
                                     <div>
                                         <span className="block text-sm font-medium text-gray-700 mb-1">Are you Hispanic or Latino?</span>
                                         <select name="hispanic" value={formData.hispanic} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900">
@@ -416,7 +500,6 @@ export default function OnboardingPage() {
                                             ))}
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
                         )}

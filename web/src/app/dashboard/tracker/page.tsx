@@ -197,6 +197,14 @@ export default function TrackerPage() {
         }, 2500);
     };
 
+    const handleUpdateFromMail = () => {
+        if (session) {
+            handleScanEmails();
+        } else {
+            runMockScan();
+        }
+    };
+
     return (
         <div className="px-4 py-6 sm:px-0 h-full flex flex-col">
             <div className="flex justify-between items-center mb-6">
