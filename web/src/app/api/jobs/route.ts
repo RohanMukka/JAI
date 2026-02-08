@@ -59,9 +59,16 @@ export async function GET(request: NextRequest) {
             remote: job.job_is_remote,
             descriptionSnippet: job.job_description ? job.job_description.substring(0, 200) + '...' : '',
             url: job.job_apply_link,
-            postedAt: new Date(job.job_posted_at_timestamp * 1000).toLocaleDateString(),
+            postedAt: (job.job_posted_at_timestamp && job.job_posted_at_timestamp > 946684800)
+                ? new Date(job.job_posted_at_timestamp * 1000).toLocaleDateString()
+                : '--',
             source: 'jsearch',
-            logo: job.employer_logo
+            logo: job.employer_logo,
+            experience: job.job_required_experience?.required_experience_in_months
+                ? (job.job_required_experience.required_experience_in_months <= 24 ? "Entry Level"
+                    : job.job_required_experience.required_experience_in_months <= 60 ? "Mid Level"
+                        : "Senior Level")
+                : (job.job_required_experience?.no_experience_required ? "Entry Level" : undefined)
         }));
 
         // Filter remote if requested (API filter sometimes unreliable, good to double check)

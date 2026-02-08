@@ -10,7 +10,14 @@ export type JSearchJob = {
     job_description: string;
     job_apply_link: string;
     job_posted_at_timestamp: number;
-    // Add other fields as needed from JSearch response if necessary
+    job_required_experience?: {
+        no_experience_required: boolean;
+        required_experience_in_months: number | null;
+        experience_mentioned: boolean;
+        experience_preferred: boolean;
+    };
+    job_employment_type?: string;
+    job_google_link: string;
 };
 
 export type JSearchResponse = {
@@ -30,4 +37,5 @@ export type JobCard = {
     postedAt: string; // Formatted date or timestamp
     source: "jsearch";
     logo?: string;
+    experience?: string;
 };

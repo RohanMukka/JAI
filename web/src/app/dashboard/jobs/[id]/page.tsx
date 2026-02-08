@@ -11,6 +11,7 @@ import {
     ArrowLeftIcon,
     SparklesIcon
 } from '@heroicons/react/24/outline';
+import ResumeEditor from '@/components/ResumeEditor';
 
 const getLogoPlaceholder = (company: string) => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(company)}&background=random&color=fff&size=128`;
@@ -25,6 +26,7 @@ export default function JobDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [generatingResume, setGeneratingResume] = useState(false);
     const [customResume, setCustomResume] = useState<string | null>(null);
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
 
     useEffect(() => {
         const fetchJobDetails = async () => {
@@ -53,24 +55,22 @@ export default function JobDetailsPage() {
         }
     }, [id]);
 
-    const handleGenerateResume = async () => {
-        if (!job) return;
+    const [isTailoring, setIsTailoring] = useState(false);
+
+    // New 2-step flow:
+    // 1. Fetch raw resume text and open editor
+    const handleViewResume = async () => {
         setGeneratingResume(true);
         try {
-            const res = await fetch('/api/resume/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jobId: job.job_id,
-                    jobDescription: job.job_description
-                }),
-            });
+            const res = await fetch('/api/resume/content');
             const data = await res.json();
 
-            if (res.ok) {
-                setCustomResume(data.resume);
+            if (res.ok && data.success) {
+                setCustomResume(data.content);
+                setIsEditorOpen(true);
             } else {
-                alert(data.error || "Failed to generate resume");
+                const errorMessage = data.error || "Failed to fetch resume";
+                alert(errorMessage);
             }
         } catch (error) {
             console.error(error);
@@ -79,6 +79,41 @@ export default function JobDetailsPage() {
             setGeneratingResume(false);
         }
     };
+
+    // 2. Send current text + JD to AI
+    const handleTailorResume = async (currentText: string) => {
+        if (!job) return "";
+        setIsTailoring(true);
+        try {
+            const res = await fetch('/api/resume/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jobId: job.job_id,
+                    jobDescription: job.job_description,
+                    resumeText: currentText // Send the user-edited text
+                }),
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                // Return the new content so the editor can update
+                return data.content;
+            } else {
+                const errorMessage = data.error || "Failed to generate resume";
+                const errorDetails = data.details ? `\n\nDetails: ${data.details}` : "";
+                alert(`${errorMessage}${errorDetails}`);
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred while tailoring");
+            throw error;
+        } finally {
+            setIsTailoring(false);
+        }
+    };
+
 
     if (loading) {
         return (
@@ -163,7 +198,7 @@ export default function JobDetailsPage() {
 
                             <div className="space-y-3">
                                 <button
-                                    onClick={handleGenerateResume}
+                                    onClick={handleViewResume}
                                     disabled={generatingResume}
                                     className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl shadow-lg shadow-indigo-200 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
@@ -173,12 +208,12 @@ export default function JobDetailsPage() {
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
-                                            Generating...
+                                            Loading Resume...
                                         </>
                                     ) : (
                                         <>
                                             <SparklesIcon className="h-5 w-5 mr-2" />
-                                            Generate Custom Resume
+                                            View & Tailor Resume
                                         </>
                                     )}
                                 </button>
@@ -194,32 +229,19 @@ export default function JobDetailsPage() {
                                 </a>
                             </div>
 
-                            {/* Resume Result (Preview) */}
+                            {/* Resume Editor Modal */}
                             {customResume && (
-                                <div className="mt-6 pt-6 border-t border-gray-100">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h4 className="text-sm font-semibold text-green-700 flex items-center">
-                                            <SparklesIcon className="h-4 w-4 mr-1" />
-                                            Resume Generated!
-                                        </h4>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 max-h-40 overflow-y-auto mb-3 border border-gray-200">
-                                        {customResume.substring(0, 150)}...
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            const blob = new Blob([customResume], { type: 'text/markdown' });
-                                            const url = window.URL.createObjectURL(blob);
-                                            const a = document.createElement('a');
-                                            a.href = url;
-                                            a.download = `Resume-${job.employer_name}.md`; // Simple MD download for now
-                                            a.click();
-                                        }}
-                                        className="w-full text-xs text-indigo-600 hover:text-indigo-800 font-medium text-center"
-                                    >
-                                        Download Markdown
-                                    </button>
-                                </div>
+                                <ResumeEditor
+                                    initialContent={customResume}
+                                    isOpen={isEditorOpen}
+                                    onClose={() => setIsEditorOpen(false)}
+                                    onTailor={handleTailorResume}
+                                    isTailoring={isTailoring}
+                                    jobApplyLink={job.job_apply_link}
+                                    jobTitle={job.job_title}
+                                    companyName={job.employer_name}
+                                    jobType={job.job_employment_type || 'Full-time'}
+                                />
                             )}
                         </div>
                     </div>

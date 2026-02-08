@@ -124,7 +124,7 @@ export default function JobsPage() {
                     ) : (
                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                             {jobs.map((job) => (
-                                <JobCardModern key={job.id} job={job} />
+                                <JobCardModern key={job.id} job={job} disableLink={true} />
                             ))}
                             {!searched && (
                                 <div className="text-center py-20">
