@@ -71,7 +71,8 @@ Rosetta Stone provides an immersive learning experience for 25 languages
 Wyzant is the nation's largest community of tutors, covering 300+ subjects
 Teachers Pay Teachers (TPT) is a comprehensive marketplace for millions of educator-created resources
 Our mission is to create innovative products that will make a real, positive difference for learners and educators and we're looking for passionate, mission-minded people to join us in achieving this goal. We have a unique culture at IXL that fosters collaboration and the open exchange of ideas. We value our team and treat one another with kindness and respect. We approach our work with passion, tenacity, and authenticity. We find it immensely satisfying to develop products that impact the lives of millions and we are eager to have you join our team.`,
-                    employer_logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/IXL_Learning_logo.svg/1200px-IXL_Learning_logo.svg.png'
+                    employer_logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/IXL_Learning_logo.svg/1200px-IXL_Learning_logo.svg.png',
+                    job_google_link: 'https://www.google.com/search?q=IXL+Learning+Software+Engineer+New+Grad+Raleigh'
                 });
                 setLoading(false);
                 return;
