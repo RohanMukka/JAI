@@ -37,5 +37,13 @@ export type JobCard = {
     postedAt: string; // Formatted date or timestamp
     source: "jsearch";
     logo?: string;
+    role?: string;
     experience?: string;
+    jobType?: string;
+    workModel?: string;
+    skills?: string[];
+    // API optional fields for robustness
+    job_title?: string;
+    job_description?: string;
+    job_id?: string;
 };

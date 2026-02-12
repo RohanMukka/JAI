@@ -1,53 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/mongodb';
-import { JSearchResponse, JobCard } from '@/types/jsearch';
-import crypto from 'crypto';
 
-export async function GET(request: NextRequest) {
-    const searchParams = request.nextUrl.searchParams;
-    const q = searchParams.get('q');
-    const location = searchParams.get('location') || 'United States'; // Default location
+import { NextResponse } from 'next/server';
+
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q') || 'Software Engineer';
+    const location = searchParams.get('location') || 'USA'; // Default to broader locale if empty
     const page = searchParams.get('page') || '1';
-    const remoteOnly = searchParams.get('remoteOnly') === 'true';
 
-    // Strictly enforce click-to-search to save tokens
-    if (!q) {
-        return NextResponse.json({ data: [] }); // Return empty if no query
+    // RapidAPI Key from env
+    const rapidApiKey = process.env.RAPIDAPI_KEY;
+
+    console.log("RAPIDAPI_KEY present:", !!rapidApiKey);
+    console.log("Query:", query, "Location:", location);
+
+    if (!rapidApiKey) {
+        console.error("RAPIDAPI_KEY is missing");
+        return NextResponse.json({ error: 'RapidAPI Key not configured' }, { status: 500 });
     }
 
-    // Cache Key
-    const cacheKey = crypto.createHash('md5').update(JSON.stringify({ q, location, page, remoteOnly })).digest('hex');
+    const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(`${query} in ${location}`)}&page=${page}&num_pages=1`;
 
     try {
-        const db = await getDb();
-        const cacheCollection = db.collection('jobs_cache');
-
-        // 1. Check Cache
-        const cached = await cacheCollection.findOne({ key: cacheKey });
-
-        // TTL Check (if not using Mongo TTL index)
-        if (cached && cached.expiresAt > new Date()) {
-            console.log(`[CACHE HIT] ${q} ${page}`);
-            return NextResponse.json(cached.payload);
-        }
-
-        // 2. Fetch from JSearch
-        console.log(`[API CALL] JSearch: ${q} ${page}`);
-
-        // Construct query: "Software Engineer in Texas"
-        const query = `${q} in ${location}`;
-
-        const res = await fetch(`https://${process.env.RAPIDAPI_HOST}/search?query=${encodeURIComponent(query)}&page=${page}&num_pages=1`, {
+        const response = await fetch(url, {
+            method: 'GET',
             headers: {
-                'X-RapidAPI-Key': process.env.RAPIDAPI_KEY!,
-                'X-RapidAPI-Host': process.env.RAPIDAPI_HOST!,
-            },
+                'X-RapidAPI-Key': rapidApiKey,
+                'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+            }
         });
 
-        if (!res.ok) {
-            throw new Error(`JSearch API error: ${res.statusText}`);
+        if (!response.ok) {
+            throw new Error(`JSearch API error: ${response.statusText}`);
         }
 
+        const data = await response.json();
+        return NextResponse.json(data);
         const data: JSearchResponse = await res.json();
 
         // 3. Normalize Data
@@ -86,9 +73,8 @@ export async function GET(request: NextRequest) {
             { upsert: true }
         );
 
-        return NextResponse.json(payload);
     } catch (error) {
-        console.error('Error fetching jobs:', error);
+        console.error('JSearch fetch error:', error);
         return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
     }
 }

@@ -8,17 +8,13 @@ import {
     UserIcon,
     ChartBarIcon,
     ClockIcon,
-    AdjustmentsHorizontalIcon,
     BellIcon
 } from '@heroicons/react/24/outline'; // You might need to install heroicons if not present, otherwise use simple svgs
-import { useAIAgent } from '@/context/AIAgentContext';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Jobs', href: '/dashboard/jobs', icon: BriefcaseIcon },
     { name: 'Tracker', href: '/dashboard/tracker', icon: ChartBarIcon },
-    { name: 'Future Me', href: '/dashboard/future-me', icon: ClockIcon },
-    { name: 'Filters', href: '/dashboard/filters', icon: AdjustmentsHorizontalIcon },
     { name: 'Inbox', href: '/dashboard/inbox', icon: BellIcon },
     { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
 ];
@@ -29,7 +25,6 @@ function classNames(...classes: string[]) {
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const { unreadCount } = useAIAgent();
 
     return (
         <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">

@@ -2,6 +2,15 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+// --- Chat Types ---
+type Message = {
+    id: string;
+    text: string;
+    sender: 'user' | 'system' | 'future-me';
+    timestamp: Date;
+};
+
+// --- Notification Types (Legacy support for Sidebar/other components) ---
 export type Notification = {
     id: string;
     title: string;
@@ -12,8 +21,25 @@ export type Notification = {
 };
 
 type AIAgentContextType = {
+    // Chat State
+    messages: Message[];
+    addMessage: (text: string, sender: 'user' | 'system' | 'future-me') => void;
+    isOpen: boolean;
+    toggleOpen: () => void;
+    triggerAgent: (text: string) => void;
+
+    // Profile State (For Jobs Page)
+    userProfile: { skills: string[] };
+    updateProfile: (newProfile: { skills: string[] }) => void;
+
+    // Legacy/Sidebar Support
     notifications: Notification[];
     unreadCount: number;
+    atmosphere: {
+        mood_theme: 'default' | 'calm' | 'energetic';
+        action?: string;
+    };
+    updateAtmosphere: (mood: 'default' | 'calm' | 'energetic', action?: string) => void;
     addNotification: (title: string, message: string, type?: Notification['type']) => void;
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
@@ -28,19 +54,54 @@ type AIAgentContextType = {
 const AIAgentContext = createContext<AIAgentContextType | undefined>(undefined);
 
 export function AIAgentProvider({ children }: { children: ReactNode }) {
-    const [notifications, setNotifications] = useState<Notification[]>([
+    // --- Chat State ---
+    const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
-            title: 'Welcome to JAI',
-            message: "I'm here to help you track your applications.",
-            timestamp: new Date(),
-            read: false,
-            type: 'info'
+            text: "Hi! I'm your JAI agent. I'll help you track your applications.",
+            sender: 'system',
+            timestamp: new Date()
         }
     ]);
+    const [isOpen, setIsOpen] = useState(false);
     const [atmosphere, setAtmosphere] = useState<AIAgentContextType['atmosphere']>({ mood_theme: 'default' });
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+    // --- Profile State ---
+    const [userProfile, setUserProfile] = useState<{ skills: string[] }>({
+        skills: ['Python', 'React', 'SQL']
+    });
+
+    // --- Legacy/Notification State ---
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [atmosphere, setAtmosphere] = useState<{ mood_theme: 'default' | 'calm' | 'energetic', action?: string }>({
+        mood_theme: 'default'
+    });
+
+    // --- Helpers ---
+    const addMessage = (text: string, sender: 'user' | 'system' | 'future-me') => {
+        setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            text,
+            sender,
+            timestamp: new Date()
+        }]);
+    };
+
+    const toggleOpen = () => setIsOpen(prev => !prev);
+
+    const triggerAgent = (text: string) => {
+        addMessage(text, 'system');
+        setIsOpen(true);
+        // Also add notification for backward compatibility if needed, or just log
+    };
+
+    const updateProfile = (newProfile: { skills: string[] }) => {
+        setUserProfile(prev => ({ ...prev, ...newProfile }));
+    };
+
+    const updateAtmosphere = (mood: 'default' | 'calm' | 'energetic', action?: string) => {
+        setAtmosphere({ mood_theme: mood, action });
+    };
 
     const addNotification = (title: string, message: string, type: Notification['type'] = 'info') => {
         setTimeout(() => {
