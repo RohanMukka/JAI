@@ -35,6 +35,43 @@ export async function GET(request: Request) {
 
         const data = await response.json();
         return NextResponse.json(data);
+        const data: JSearchResponse = await res.json();
+
+        // 3. Normalize Data
+        const normalizedJobs: JobCard[] = data.data.map((job) => ({
+            id: job.job_id,
+            title: job.job_title,
+            company: job.employer_name,
+            location: [job.job_city, job.job_state, job.job_country].filter(Boolean).join(', '),
+            remote: job.job_is_remote,
+            descriptionSnippet: job.job_description ? job.job_description.substring(0, 200) + '...' : '',
+            url: job.job_apply_link,
+            postedAt: (job.job_posted_at_timestamp && job.job_posted_at_timestamp > 946684800)
+                ? new Date(job.job_posted_at_timestamp * 1000).toLocaleDateString()
+                : '--',
+            source: 'jsearch',
+            logo: job.employer_logo,
+            experience: job.job_required_experience?.required_experience_in_months
+                ? (job.job_required_experience.required_experience_in_months <= 24 ? "Entry Level"
+                    : job.job_required_experience.required_experience_in_months <= 60 ? "Mid Level"
+                        : "Senior Level")
+                : (job.job_required_experience?.no_experience_required ? "Entry Level" : undefined)
+        }));
+
+        // Filter remote if requested (API filter sometimes unreliable, good to double check)
+        const filteredJobs = remoteOnly ? normalizedJobs.filter(j => j.remote) : normalizedJobs;
+
+        const payload = { data: filteredJobs };
+
+        // 4. Store in Cache (TTL 24h)
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+
+        await cacheCollection.updateOne(
+            { key: cacheKey },
+            { $set: { key: cacheKey, payload, createdAt: new Date(), expiresAt } },
+            { upsert: true }
+        );
 
     } catch (error) {
         console.error('JSearch fetch error:', error);

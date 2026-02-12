@@ -285,9 +285,23 @@ export default function JobsPage() {
                             </button>
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            {filteredJobs.map((job: JobCard) => (
-                                <JobCardModern key={job.id} job={job} />
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            {/* Hardcoded IXL Job */}
+                            <JobCardModern job={{
+                                id: 'ixl-new-grad-1',
+                                title: 'Software Engineer, New Grad',
+                                company: 'IXL Learning',
+                                location: 'Raleigh, NC',
+                                remote: false,
+                                descriptionSnippet: 'IXL Learning is seeking new graduates who have a passion for technology and education to join our team.',
+                                url: 'https://www.ixl.com/company/careers/apply?gh_jid=8364780002&gh_src=9ab9c2a12',
+                                postedAt: 'Today', 
+                                source: 'jsearch',
+                                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/IXL_Learning_logo.svg/1200px-IXL_Learning_logo.svg.png'
+                            }} />
+
+                            {jobs.map((job) => (
+                                <JobCardModern key={job.id} job={job} disableLink={true} />
                             ))}
                         </div>
                     )}

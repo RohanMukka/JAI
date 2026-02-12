@@ -12,9 +12,10 @@ export default function ProfilePage() {
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
+        middleName: '', // New
         education: [] as any[],
         experience: [] as any[],
-        skills: '', // comma separated string or array? Let's treat as string for input
+        skills: '',
 
         workAuth: '',
         disability: '',
@@ -26,13 +27,26 @@ export default function ProfilePage() {
         hispanic: '',
         sexualOrientation: [] as string[],
 
-        // Legacy fields map to new ones or kept?
-        // Let's keep new ones.
         linkedin: '',
         github: '',
         portfolio: '',
         phone: '',
+        phoneCountryCode: '', // New
+        phoneDeviceType: '', // New
+        phoneExtension: '', // New
         location: '',
+
+        // Address
+        addressLine1: '', // New
+        addressLine2: '', // New
+        city: '', // New
+        state: '', // New
+        zip: '', // New
+        country: '', // New
+
+        // Job Prefs
+        desiredSalary: '', // New
+        noticePeriod: '', // New
     });
 
     // Helper for array field state
@@ -110,11 +124,90 @@ export default function ProfilePage() {
         }
     };
 
+    const calculateCompletion = () => {
+        const fields = [
+            { id: 'firstName', label: 'First Name', value: formData.firstName },
+            { id: 'lastName', label: 'Last Name', value: formData.lastName },
+            { id: 'phone', label: 'Phone Number', value: formData.phone },
+            { id: 'linkedin', label: 'LinkedIn URL', value: formData.linkedin },
+            { id: 'github', label: 'GitHub URL', value: formData.github },
+            { id: 'location', label: 'Profile Location', value: formData.location },
+            { id: 'addressLine1', label: 'Address Line 1', value: formData.addressLine1 },
+            { id: 'city', label: 'City', value: formData.city },
+            { id: 'state', label: 'State', value: formData.state },
+            { id: 'zip', label: 'Zip Code', value: formData.zip },
+            { id: 'country', label: 'Country', value: formData.country },
+            { id: 'desiredSalary', label: 'Desired Salary', value: formData.desiredSalary },
+            { id: 'noticePeriod', label: 'Notice Period', value: formData.noticePeriod },
+            { id: 'workAuth', label: 'Work Authorization', value: formData.workAuth },
+            { id: 'gender', label: 'Gender', value: formData.gender },
+            { id: 'race', label: 'Race', value: formData.race },
+            { id: 'skills', label: 'Skills', value: formData.skills },
+        ];
+
+        const missing = fields.filter(f => !f.value || f.value.toString().trim() === '');
+        const arrayMissing = [];
+        if (formData.education.length === 0) arrayMissing.push('Education');
+        if (formData.experience.length === 0) arrayMissing.push('Work Experience');
+        if (formData.sexualOrientation.length === 0) arrayMissing.push('Sexual Orientation');
+
+        const totalPoints = fields.length + 3;
+        const completedPoints = (fields.length - missing.length) + (3 - arrayMissing.length);
+        const percentage = Math.round((completedPoints / totalPoints) * 100);
+
+        return { percentage, missing: [...missing.map(m => m.label), ...arrayMissing] };
+    };
+
     if (loading) return <div className="p-8">Loading profile...</div>;
 
+    const { percentage, missing } = calculateCompletion();
+
     return (
-        <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Your Profile</h1>
+        <div className="max-w-4xl mx-auto pb-12">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Your Profile</h1>
+                <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-500">Profile Completion:</span>
+                    <span className={`text-sm font-bold ${percentage === 100 ? 'text-green-600' : 'text-indigo-600'}`}>{percentage}%</span>
+                </div>
+            </div>
+
+            {/* Completion Bar */}
+            <div className="bg-white p-6 rounded-lg shadow mb-8 border-l-4 border-indigo-500">
+                <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Completion Progress</h2>
+                    {percentage === 100 && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            ✨ 100% Complete!
+                        </span>
+                    )}
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
+                    <div
+                        className="bg-indigo-600 h-4 rounded-full transition-all duration-1000 ease-out"
+                        style={{ width: `${percentage}%` }}
+                    ></div>
+                </div>
+
+                {percentage < 100 && (
+                    <div>
+                        <p className="text-sm text-gray-600 mb-2 font-medium">Complete these fields to reach 100%:</p>
+                        <div className="flex flex-wrap gap-2">
+                            {missing.slice(0, 8).map((label, idx) => (
+                                <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100">
+                                    {label}
+                                </span>
+                            ))}
+                            {missing.length > 8 && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600">
+                                    + {missing.length - 8} more
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow">
 
                 {/* Personal Info */}
@@ -126,17 +219,80 @@ export default function ProfilePage() {
                             <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
                         <div>
+                            <label className="block text-sm font-medium text-gray-700">Middle Name</label>
+                            <input type="text" name="middleName" value={formData.middleName || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                        <div>
                             <label className="block text-sm font-medium text-gray-700">Last Name</label>
                             <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Phone</label>
-                            <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        <div className="grid grid-cols-3 gap-2">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium text-gray-700">Country Code</label>
+                                <input type="text" name="phoneCountryCode" placeholder="+1" value={formData.phoneCountryCode || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                            </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Location</label>
-                            <input type="text" name="location" value={formData.location} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                            <label className="block text-sm font-medium text-gray-700">Device Type</label>
+                            <select name="phoneDeviceType" value={formData.phoneDeviceType || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white">
+                                <option value="">Select...</option>
+                                <option value="Mobile">Mobile</option>
+                                <option value="Home">Home</option>
+                                <option value="Work">Work</option>
+                            </select>
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Extension</label>
+                            <input type="text" name="phoneExtension" value={formData.phoneExtension || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                    </div>
+
+                    {/* Job Preferences */}
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mt-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Desired Salary (USD)</label>
+                            <input type="text" name="desiredSalary" value={formData.desiredSalary || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Notice Period (Days/Weeks)</label>
+                            <input type="text" name="noticePeriod" value={formData.noticePeriod || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mt-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Address Line 1</label>
+                            <input type="text" name="addressLine1" value={formData.addressLine1 || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Address Line 2 (Optional)</label>
+                            <input type="text" name="addressLine2" value={formData.addressLine2 || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">City</label>
+                            <input type="text" name="city" value={formData.city || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">State/Province</label>
+                            <input type="text" name="state" value={formData.state || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Zip/Postal Code</label>
+                            <input type="text" name="zip" value={formData.zip || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Country</label>
+                            <input type="text" name="country" value={formData.country || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
+                        </div>
+                    </div>
+                    {/* Kept 'Location' as a display/summary field if needed, or legacy */}
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700">Location (Summary, e.g. "New York, NY")</label>
+                        <input type="text" name="location" value={formData.location} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-black bg-white" />
                     </div>
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 mt-4">
                         <div>
@@ -334,6 +490,7 @@ export default function ProfilePage() {
                         <div>
                             <span className="block text-sm font-medium text-gray-700 mb-1">Race</span>
                             <select name="race" value={formData.race} onChange={handleChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-black bg-white">
+                                <option value="">Select...</option>
                                 <option value="Asian">Asian</option>
                                 <option value="Black or African American">Black or African American</option>
                                 <option value="Hispanic or Latino">Hispanic or Latino</option>

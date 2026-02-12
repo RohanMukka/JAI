@@ -44,17 +44,24 @@ export default function Sidebar() {
                                         isActive
                                             ? 'bg-indigo-50 text-indigo-600'
                                             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-                                        'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out'
+                                        'group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out'
                                     )}
                                 >
-                                    <item.icon
-                                        className={classNames(
-                                            isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500',
-                                            'mr-3 flex-shrink-0 h-5 w-5'
-                                        )}
-                                        aria-hidden="true"
-                                    />
-                                    {item.name}
+                                    <div className="flex items-center">
+                                        <item.icon
+                                            className={classNames(
+                                                isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500',
+                                                'mr-3 flex-shrink-0 h-6 w-6'
+                                            )}
+                                            aria-hidden="true"
+                                        />
+                                        {item.name}
+                                    </div>
+                                    {item.name === 'Inbox' && unreadCount > 0 && (
+                                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                            {unreadCount}
+                                        </span>
+                                    )}
                                 </Link>
                             );
                         })}

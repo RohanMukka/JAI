@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCustomResume } from '@/lib/gemini';
+import { generateCustomResume, parseResumeFromPdf } from '@/lib/openrouter';
 import { getDb } from '@/lib/mongodb';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -11,44 +11,55 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { jobDescription } = await request.json();
+        const { jobDescription, resumeText } = await request.json();
 
         if (!jobDescription) {
             return NextResponse.json({ error: "Job Description is required" }, { status: 400 });
         }
 
-        const db = await getDb();
-        // @ts-ignore
-        const userId = session.user.id || session.user.email;
+        let finalResumeText = resumeText;
 
-        const profile = await db.collection("profiles").findOne({ userId });
+        // Fallback: If no text provided, fetch from DB and parse
+        if (!finalResumeText) {
+            console.log("[API] No resume text provided, fetching from DB...");
+            const db = await getDb();
+            // @ts-ignore
+            const userId = session.user.id || session.user.email;
+            const profile = await db.collection("profiles").findOne({ userId });
 
-        if (!profile || !profile.resumePdfData) {
-            return NextResponse.json({ error: "No resume found. Please upload a resume first." }, { status: 404 });
+            if (!profile || !profile.resumePdfData) {
+                return NextResponse.json({ error: "No resume found. Please upload a resume first." }, { status: 404 });
+            }
+
+            // Convert Binary to Buffer
+            let resumeBuffer: Buffer;
+            if (profile.resumePdfData.buffer) {
+                resumeBuffer = Buffer.from(profile.resumePdfData.buffer);
+            } else {
+                resumeBuffer = Buffer.from(profile.resumePdfData);
+            }
+
+            finalResumeText = await parseResumeFromPdf(resumeBuffer);
         }
 
-        console.log("[API] Resume Generation Started");
+        console.log("[API] generating resume with text length:", finalResumeText.length);
+        const generatedResume = await generateCustomResume(jobDescription, finalResumeText);
 
-        // Convert Binary to Buffer
-        let resumeBuffer: Buffer;
-        if (profile.resumePdfData.buffer) {
-            console.log("[API] Converting from Binary");
-            resumeBuffer = Buffer.from(profile.resumePdfData.buffer);
-        } else {
-            console.log("[API] Using existing Buffer/String");
-            resumeBuffer = Buffer.from(profile.resumePdfData);
-        }
+        // Return the Markdown content directly via JSON
+        return NextResponse.json({
+            success: true,
+            content: generatedResume
+        });
 
-        console.log(`[API] Resume Buffer Size: ${resumeBuffer.length}`);
-
-        console.log("[API] Calling Gemini...");
-        const generatedResume = await generateCustomResume(jobDescription, resumeBuffer);
-        console.log("[API] Gemini Response Received");
-
-        return NextResponse.json({ resume: generatedResume });
-
-    } catch (error) {
-        console.error("Resume generation error:", error);
-        return NextResponse.json({ error: "Failed to generate resume" }, { status: 500 });
+    } catch (error: any) {
+        console.error("[API] Resume Generation Error:", error);
+        return NextResponse.json(
+            {
+                success: false,
+                error: error.message || "Internal Server Error",
+                details: error.toString()
+            },
+            { status: 500 }
+        );
     }
 }
