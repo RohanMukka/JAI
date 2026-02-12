@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import {
     MagnifyingGlassIcon,
     FunnelIcon,
@@ -75,7 +76,8 @@ import { useAIAgent } from '@/context/AIAgentContext';
 export default function TrackerPage() {
     const [applications, setApplications] = useState<JobApplication[]>(initialApplications);
     const [searchTerm, setSearchTerm] = useState('');
-    const { triggerAgent } = useAIAgent();
+    const { triggerAgent, addNotification } = useAIAgent();
+    const { data: session } = useSession();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState<string>('All');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -193,7 +195,49 @@ export default function TrackerPage() {
         triggerAgent(`Deleted ${selectedIds.size} application(s).`);
     };
 
+    const handleScanEmails = async () => {
+        setIsScanning(true);
+        try {
+            const response = await fetch('/api/email/scan');
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error || 'Failed to scan');
+
+            if (data.updates && data.updates.length > 0) {
+                // Update applications based on findings
+                setApplications(prev => {
+                    let updated = [...prev];
+                    data.updates.forEach((update: any) => {
+                        const index = updated.findIndex(app =>
+                            app.companyName.toLowerCase() === update.company.toLowerCase()
+                        );
+                        if (index !== -1) {
+                            updated[index] = { ...updated[index], status: update.newStatus };
+                        }
+                    });
+                    return updated;
+                });
+
+                addNotification('Email Scan Results', `Found ${data.updates.length} updates from your emails!`, 'success');
+                triggerAgent(`I found ${data.updates.length} updates in your inbox. I've updated the tracker for you!`);
+            } else {
+                addNotification('Email Scan', 'No new job updates found in your recent emails.', 'info');
+            }
+        } catch (error: any) {
+            console.error('Scan error:', error);
+            addNotification('Scan Failed', error.message || 'Error connecting to Gmail', 'warning');
+        } finally {
+            setIsScanning(false);
+        }
+    };
+
     const handleUpdateFromMail = () => {
+        // If logged in, do real scan, otherwise do simulation
+        if (session) {
+            handleScanEmails();
+            return;
+        }
+
         setIsScanning(true);
         // Simulate scanning delay
         setTimeout(() => {
@@ -201,7 +245,7 @@ export default function TrackerPage() {
 
             // Find a target application to simulate an update (e.g., TechCorp)
             const targetApp = applications.find(app => app.companyName === 'TechCorp' && app.status === 'Applied');
-
+            //if condition
             if (targetApp) {
                 setApplications(prev => prev.map(app =>
                     app.id === targetApp.id ? { ...app, status: 'Interview' } : app
@@ -250,17 +294,31 @@ export default function TrackerPage() {
             <div className="bg-indigo-50 border border-indigo-100 rounded-md p-3 mb-6 flex justify-between items-center">
                 <div className="flex items-center">
                     <EnvelopeIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                    <span className="text-sm text-indigo-900 font-medium">Connect your email to automatically track applications.</span>
+                    <span className="text-sm text-indigo-900 font-medium">
+                        {session
+                            ? `Connected as ${session.user?.email}. Scanning enabled.`
+                            : "Connect your email to automatically track applications."}
+                    </span>
                 </div>
                 <div className="flex space-x-3">
-                    <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-4 w-4 mr-2" />
-                        Connect Gmail
-                    </button>
-                    <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" alt="Outlook" className="h-4 w-4 mr-2" />
-                        Connect Outlook
-                    </button>
+                    {!session ? (
+                        <button
+                            onClick={() => signIn('google')}
+                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-4 w-4 mr-2" />
+                            Connect Gmail
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleScanEmails}
+                            disabled={isScanning}
+                            className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            <ArrowPathIcon className={`h-4 w-4 mr-2 ${isScanning ? 'animate-spin' : ''}`} />
+                            Scan Now
+                        </button>
+                    )}
                 </div>
             </div>
 
