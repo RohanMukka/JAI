@@ -64,7 +64,6 @@ export function AIAgentProvider({ children }: { children: ReactNode }) {
         }
     ]);
     const [isOpen, setIsOpen] = useState(false);
-    const [atmosphere, setAtmosphere] = useState<AIAgentContextType['atmosphere']>({ mood_theme: 'default' });
 
     // --- Profile State ---
     const [userProfile, setUserProfile] = useState<{ skills: string[] }>({
@@ -92,7 +91,6 @@ export function AIAgentProvider({ children }: { children: ReactNode }) {
     const triggerAgent = (text: string) => {
         addMessage(text, 'system');
         setIsOpen(true);
-        // Also add notification for backward compatibility if needed, or just log
     };
 
     const updateProfile = (newProfile: { skills: string[] }) => {
@@ -133,24 +131,28 @@ export function AIAgentProvider({ children }: { children: ReactNode }) {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     };
 
-    const triggerAgent = (text: string) => {
-        addNotification('System Update', text, 'info');
-    };
-
-    const updateAtmosphere = (mood: 'default' | 'calm' | 'energetic', action?: string) => {
-        setAtmosphere({ mood_theme: mood, action });
-    };
+    // Derived State
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
         <AIAgentContext.Provider value={{
+            // Chat
+            messages,
+            addMessage,
+            isOpen,
+            toggleOpen,
+            triggerAgent,
+            // Profile
+            userProfile,
+            updateProfile,
+            // Legacy/Notifications
             notifications,
             unreadCount,
+            atmosphere,
+            updateAtmosphere,
             addNotification,
             markAsRead,
-            markAllAsRead,
-            triggerAgent,
-            atmosphere,
-            updateAtmosphere
+            markAllAsRead
         }}>
             {children}
         </AIAgentContext.Provider>
