@@ -7,14 +7,15 @@ import {
     BriefcaseIcon,
     UserIcon,
     ChartBarIcon,
-    ClockIcon
+    ClockIcon,
+    BellIcon
 } from '@heroicons/react/24/outline'; // You might need to install heroicons if not present, otherwise use simple svgs
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Jobs', href: '/dashboard/jobs', icon: BriefcaseIcon },
     { name: 'Tracker', href: '/dashboard/tracker', icon: ChartBarIcon },
-    { name: 'Future Me', href: '/dashboard/future-me', icon: ClockIcon },
+    { name: 'Inbox', href: '/dashboard/inbox', icon: BellIcon },
     { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
 ];
 
