@@ -5,6 +5,12 @@ try {
     console.error("JAI: Failed to load config.js. Make sure it exists!", e);
 }
 
+try {
+    importScripts('local-optimizer.js');
+} catch (e) {
+    console.error("JAI: Failed to load local-optimizer.js", e);
+}
+
 // Side Panel Logic
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
@@ -39,8 +45,15 @@ async function handleAutomation(jdText, sendResponse) {
         latex = await callOpenRouterFree(openRouterKey, data.resumeContent, jdText);
     }
     
+    // 3rd fallback: Local NLP optimizer (no API needed)
     if (!latex) {
-        throw new Error("All AI providers failed. Add Gemini API keys or an OpenRouter key to config.js.");
+        console.log("JAI: All cloud APIs unavailable. Using local NLP optimizer...");
+        if (typeof optimizeLatexLocally === 'function') {
+            updateStatusBanner("Using local optimizer (offline mode)...", 'warning');
+            latex = optimizeLatexLocally(jdText, data.resumeContent);
+        } else {
+            throw new Error("All AI providers failed and local optimizer not available.");
+        }
     }
     
     // Save LaTeX for the Content Script to pick up

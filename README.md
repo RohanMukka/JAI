@@ -138,11 +138,16 @@ Load in Chrome:
 
 JAI automatically falls back through available AI providers:
 
-1. **Google Gemini** (if `GOOGLE_API_KEY` is set) — fastest, supports direct PDF input
-2. **OpenRouter paid** (if `OPENROUTER_API_KEY` is set) — uses Gemini 2.0 Flash via OpenRouter
-3. **OpenRouter free** (same key) — uses Llama 3.3 70B, completely free, no credit card
+| Priority | Provider | Requirement | Quality |
+|----------|----------|-------------|---------|
+| 1st | Google Gemini | `GOOGLE_API_KEY` | Best — full AI rewrite, PDF support |
+| 2nd | OpenRouter (paid) | `OPENROUTER_API_KEY` | Excellent — Gemini 2.0 Flash via API |
+| 3rd | OpenRouter (free) | Same key, no credit card | Great — Llama 3.3 70B, rate-limited |
+| 4th | Local NLP Engine | Nothing — built in | Good — TF-IDF keywords, skill injection, bullet enhancement |
 
-You only need one of these configured. For the lowest-effort setup, just get a free OpenRouter API key at [openrouter.ai](https://openrouter.ai).
+The local NLP engine runs with zero API keys and zero internet. It uses TF-IDF keyword extraction to identify important JD terms, detects skills mentioned in the JD but missing from your resume, strengthens weak action verbs, and injects relevant skills into your Skills section.
+
+For the best experience, configure at least a free OpenRouter key. But the app works completely offline as a last resort.
 
 ## Troubleshooting
 

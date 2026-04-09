@@ -9,12 +9,13 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
+import { optimizeResumeLocally } from "./local-optimizer";
 
 // ---------------------------------------------------------------------------
 // Provider helpers
 // ---------------------------------------------------------------------------
 
-type Provider = "gemini" | "openrouter" | "openrouter-free";
+type Provider = "gemini" | "openrouter" | "openrouter-free" | "local-nlp";
 
 interface ProviderResult {
     text: string;
@@ -197,11 +198,35 @@ export async function generateResume(
         return { text: freeResult, provider: "openrouter-free" };
     }
 
-    throw new Error(
-        "All AI providers failed. Please configure at least one:\n" +
-        "  • GOOGLE_API_KEY (Google Gemini)\n" +
-        "  • OPENROUTER_API_KEY (OpenRouter — free models work with any key, no credit card needed)"
-    );
+    // -- 4. Local NLP optimizer (no API needed at all) --
+    console.log("[AI] All cloud providers unavailable. Using local NLP optimizer.");
+    let resumeText: string;
+    if (Buffer.isBuffer(resumeContent)) {
+        try {
+            const pdf = require("pdf-parse");
+            const data = await pdf(resumeContent);
+            resumeText = data.text;
+        } catch {
+            throw new Error(
+                "All cloud AI providers are unavailable and the resume PDF could not be parsed locally. " +
+                "Please configure at least one API key or provide a text-based resume."
+            );
+        }
+    } else {
+        resumeText = resumeContent as string;
+    }
+
+    const localResult = optimizeResumeLocally(jobDescription, resumeText);
+    const localOutput = [
+        localResult.optimizedResume,
+        "",
+        "---",
+        "*Note: This resume was optimized using local NLP analysis (TF-IDF keyword matching, skill gap detection, and bullet enhancement). For best results, configure a Gemini or OpenRouter API key.*",
+        "",
+        `**Top JD Keywords Detected:** ${localResult.analysis.topKeywords.join(", ")}`,
+    ].join("\n");
+
+    return { text: localOutput, provider: "local-nlp" };
 }
 
 /**
