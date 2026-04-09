@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { parseResumeFromPdf } from '@/lib/openrouter';
+import { parseResumeFromPdf } from '@/lib/ai-service';
 
 export async function GET(request: NextRequest) {
     console.log("[API] GET /api/resume/content - Hit");

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCustomResume, parseResumeFromPdf } from '@/lib/openrouter';
+import { generateResume, parseResumeFromPdf } from '@/lib/ai-service';
 import { getDb } from '@/lib/mongodb';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -43,12 +43,12 @@ export async function POST(request: NextRequest) {
         }
 
         console.log("[API] generating resume with text length:", finalResumeText.length);
-        const generatedResume = await generateCustomResume(jobDescription, finalResumeText);
+        const result = await generateResume(jobDescription, finalResumeText);
 
-        // Return the Markdown content directly via JSON
         return NextResponse.json({
             success: true,
-            content: generatedResume
+            content: result.text,
+            provider: result.provider,
         });
 
     } catch (error: any) {

@@ -23,13 +23,25 @@ async function handleAutomation(jdText, sendResponse) {
     
     // Load API Keys from config.js
     const keys = (typeof JAI_CONFIG !== 'undefined' && JAI_CONFIG.API_KEYS) ? JAI_CONFIG.API_KEYS : [];
+    const openRouterKey = (typeof JAI_CONFIG !== 'undefined' && JAI_CONFIG.OPENROUTER_KEY) ? JAI_CONFIG.OPENROUTER_KEY : null;
 
-    if (keys.length === 0 || keys[0] === "YOUR_API_KEY_1") {
-        console.warn("JAI: No API keys found in config.js. Please populate extension/scripts/config.js");
+    const hasGeminiKeys = keys.length > 0 && keys[0] !== "YOUR_API_KEY_1";
+
+    let latex;
+    if (hasGeminiKeys) {
+        // Try Gemini first
+        latex = await callGemini(keys, data.resumeContent, jdText);
     }
     
-    // Call Gemini with Key Rotation (Pass the whole array)
-    const latex = await callOpenAI(keys, data.resumeContent, jdText);
+    // If Gemini didn't work (no keys or all failed), try OpenRouter free
+    if (!latex && openRouterKey) {
+        console.log("JAI: Falling back to OpenRouter free model...");
+        latex = await callOpenRouterFree(openRouterKey, data.resumeContent, jdText);
+    }
+    
+    if (!latex) {
+        throw new Error("All AI providers failed. Add Gemini API keys or an OpenRouter key to config.js.");
+    }
     
     // Save LaTeX for the Content Script to pick up
     await chrome.storage.local.set({ generatedLatex: latex });
@@ -63,10 +75,9 @@ async function handleAutomation(jdText, sendResponse) {
   }
 }
 
-async function callOpenAI(apiKeys, resume, jd) {
+async function callGemini(apiKeys, resume, jd) {
     // Ensure keys is always an array
     const keys = Array.isArray(apiKeys) ? apiKeys : [apiKeys];
-    // Renaming internally to generic call, but implementing for Gemini
     const systemInstruction = `
       You are an expert ATS Resume Optimizer and LaTeX Generator.
       
@@ -290,32 +301,135 @@ DO NOT change font size, margins, or document class.
         }
     }
 
-    const result = await fetchWithRotation();
-    
-    // Extract text from Gemini response structure
-    let text = result.candidates[0].content.parts[0].text;
-    
-    // Cleanup Markdown
-    text = text.replace(/```latex/gi, '').replace(/```/g, '').trim();
+    try {
+        const result = await fetchWithRotation();
+        if (!result) return null; // Cancelled or failed
+        
+        // Extract text from Gemini response structure
+        let text = result.candidates[0].content.parts[0].text;
+        
+        // Cleanup Markdown
+        text = text.replace(/```latex/gi, '').replace(/```/g, '').trim();
 
-    // INTEGRITY CHECK
-    if (!text.includes('\\end{document}')) {
-        console.warn("JAI: Generated code seems truncated. Appending \\end{document}");
-        text += '\n\\end{document}';
-    }
-
-    // FAILSAFE: Copy to clipboard using the current active tab (JD) before navigating away
-    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-        if(tabs[0]) {
-            chrome.scripting.executeScript({
-                target: {tabId: tabs[0].id},
-                func: (code) => {
-                    navigator.clipboard.writeText(code).catch(e => console.error(e));
-                },
-                args: [text]
-            });
+        // INTEGRITY CHECK
+        if (!text.includes('\\end{document}')) {
+            console.warn("JAI: Generated code seems truncated. Appending \\end{document}");
+            text += '\n\\end{document}';
         }
-    });
 
-    return text;
+        // FAILSAFE: Copy to clipboard
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+            if(tabs[0]) {
+                chrome.scripting.executeScript({
+                    target: {tabId: tabs[0].id},
+                    func: (code) => {
+                        navigator.clipboard.writeText(code).catch(e => console.error(e));
+                    },
+                    args: [text]
+                });
+            }
+        });
+
+        return text;
+    } catch (err) {
+        console.warn("JAI: Gemini call failed entirely:", err.message);
+        return null; // Return null so handleAutomation can try fallback
+    }
+}
+
+// ---------------------------------------------------------------------------
+// OpenRouter Free Tier Fallback
+// Uses Llama 3.3 70B (free) via OpenRouter — no credit card needed.
+// ---------------------------------------------------------------------------
+async function callOpenRouterFree(apiKey, resume, jd) {
+    const systemInstruction = `
+      You are an expert ATS Resume Optimizer and LaTeX Generator.
+      
+      CRITICAL INSTRUCTIONS:
+      1. DO NOT CHANGE THE LAYOUT: Use the provided Base Resume LaTeX code exact structure, spacing, macros.
+      2. COMMAND STRUCTURE:
+         - \\resumeSubheading{Title}{Location}{Role}{Date} (4 arguments)
+         - \\resumeProjectHeading{Title | Tech Stack | Links}{} (2 arguments)
+         - NEVER use '&' inside these arguments. Use '$|$'.
+      3. LIST MACROS:
+         - ALWAYS start lists with \\resumeItemListStart
+         - ALWAYS end lists with \\resumeItemListEnd (NEVER use \\end{itemize})
+      4. SANITY CHECK:
+         - In Extracurriculars, NEVER write "\\item \\small{\\item ...}".
+         - Correct: "\\item \\small{...}"
+      5. REWRITE SKILLS: Add technical skills from JD. In "Concepts", list top 5-6 relevant concepts.
+      6. DYNAMIC TITLES: Rewrite Experience Role to match JD.
+      7. STRICT SINGLE-LINE BULLETS with \\vspace{-3pt} appended.
+      8. STRICT 1-PAGE LIMIT.
+      9. NO VISUAL CHANGES.
+      10. Every sentence should be human written and not sound AI generated.
+      11. Use the same vspace as the base resume.
+    Your job is to MODIFY CONTENT ONLY, not layout structure.`;
+
+    const prompt = `JOB DESCRIPTION:
+${jd.substring(0, 8000)}
+
+BASE RESUME LATEX:
+${resume.substring(0, 15000)}
+
+TASK:
+Rewrite the Base Resume to match the Job Description perfectly, following the instructions.
+- IMPORTANT: Do NOT use '&' in \\resumeProjectHeading. Use '$|$'.
+- Ensure \\resumeProjectHeading has exactly 2 sets of braces: {Content}{Date}.`;
+
+    updateStatusBanner("Using free AI model (Llama 3.3 70B)...", 'info');
+
+    try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: 'meta-llama/llama-3.3-70b-instruct:free',
+                messages: [
+                    { role: 'system', content: systemInstruction },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 8192,
+                temperature: 0.2
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            updateStatusBanner(`Free model error: ${data.error.message}`, 'error');
+            return null;
+        }
+
+        let text = data.choices[0].message.content;
+        text = text.replace(/```latex/gi, '').replace(/```/g, '').trim();
+
+        if (!text.includes('\\end{document}')) {
+            console.warn("JAI: Generated code seems truncated. Appending \\end{document}");
+            text += '\n\\end{document}';
+        }
+
+        // Copy to clipboard
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+            if(tabs[0]) {
+                chrome.scripting.executeScript({
+                    target: {tabId: tabs[0].id},
+                    func: (code) => {
+                        navigator.clipboard.writeText(code).catch(e => console.error(e));
+                    },
+                    args: [text]
+                });
+            }
+        });
+
+        updateStatusBanner("Success! Opening Overleaf...", 'success');
+        return text;
+
+    } catch (err) {
+        updateStatusBanner(`Free model error: ${err.message}`, 'error');
+        return null;
+    }
 }

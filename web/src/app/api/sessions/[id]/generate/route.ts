@@ -1,10 +1,9 @@
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { generateCustomResume, parseResumeFromPdf } from "@/lib/openrouter";
+import { generateResume, parseResumeFromPdf } from "@/lib/ai-service";
 
 export async function POST(
     req: Request,
@@ -31,7 +30,6 @@ export async function POST(
             return NextResponse.json({ error: "Session not found" }, { status: 404 });
         }
 
-        // Get job description from session
         const jobDescription = sessionDoc.jobDescription;
         if (!jobDescription) {
             return NextResponse.json({ error: "No job description in session" }, { status: 400 });
@@ -59,22 +57,27 @@ export async function POST(
             return NextResponse.json({ error: "No resume found. Please upload a resume first." }, { status: 404 });
         }
 
-        // Generate optimized resume
-        const generatedContent = await generateCustomResume(jobDescription, resumeText);
+        // Generate with automatic fallback
+        const result = await generateResume(jobDescription, resumeText);
 
         // Update session with generated content
         await db.collection("sessions").updateOne(
             { _id: new ObjectId(id) },
             {
                 $set: {
-                    generatedContent,
+                    generatedContent: result.text,
+                    aiProvider: result.provider,
                     status: "completed",
                     updatedAt: new Date(),
                 },
             }
         );
 
-        return NextResponse.json({ success: true, content: generatedContent });
+        return NextResponse.json({
+            success: true,
+            content: result.text,
+            provider: result.provider,
+        });
 
     } catch (error: any) {
         console.error("Error generating resume:", error);

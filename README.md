@@ -102,9 +102,10 @@ Create `extension/scripts/config.js` (gitignored):
 ```javascript
 const JAI_CONFIG = {
     API_KEYS: [
-        "YOUR_GEMINI_API_KEY_1",
-        "YOUR_GEMINI_API_KEY_2"  // Optional rotation key
-    ]
+        "YOUR_GEMINI_API_KEY_1",    // Optional — leave empty if using OpenRouter only
+        "YOUR_GEMINI_API_KEY_2"     // Optional rotation key
+    ],
+    OPENROUTER_KEY: "YOUR_OPENROUTER_KEY"  // Free fallback — get one at openrouter.ai (no credit card)
 };
 ```
 
@@ -133,8 +134,19 @@ Load in Chrome:
 | PDF | Overleaf (LaTeX compilation) |
 | Jobs API | JSearch via RapidAPI |
 
+## AI Provider Fallback
+
+JAI automatically falls back through available AI providers:
+
+1. **Google Gemini** (if `GOOGLE_API_KEY` is set) — fastest, supports direct PDF input
+2. **OpenRouter paid** (if `OPENROUTER_API_KEY` is set) — uses Gemini 2.0 Flash via OpenRouter
+3. **OpenRouter free** (same key) — uses Llama 3.3 70B, completely free, no credit card
+
+You only need one of these configured. For the lowest-effort setup, just get a free OpenRouter API key at [openrouter.ai](https://openrouter.ai).
+
 ## Troubleshooting
 
 - **Extension not connecting** — Make sure the web app is running on `localhost:3000` and you're logged in. The extension detects the session via cookies.
 - **Overleaf not pasting** — Click the JAI status banner in the Overleaf tab to re-copy the LaTeX to your clipboard, then paste manually with `Ctrl+V`.
 - **Gemini 429 errors** — Add a second API key in `config.js` for automatic rotation. The extension retries with countdown on quota exhaustion.
+- **No API key at all** — Set `OPENROUTER_KEY` in `config.js` (extension) or `OPENROUTER_API_KEY` in `.env.local` (web). Free models work with no credit card.
