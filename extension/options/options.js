@@ -156,8 +156,7 @@ Reinforcement Learning}
 \vspace{-5pt}
 
 \begin{itemize}[leftmargin=0.15in, label={}, itemsep=0pt]
-    \item \small{\item \small{Participated in and organized multiple hackathons, and contributed to IEEE workshops and AI/ML projects, gaining hands-on experience in innovation, leadership, and collaborative problem-solving.}
-}
+    \item \small{Participated in and organized multiple hackathons, and contributed to IEEE workshops and AI/ML projects, gaining hands-on experience in innovation, leadership, and collaborative problem-solving.}
     \item \small{Solved over 400 Data Structures and Algorithms problems across different platforms.}
     \item \small{Mentored 50+ students in web development and problem-solving at GDSC Bootcamp, enhancing peer learning and project quality.}
     

@@ -234,7 +234,7 @@ DO NOT change font size, margins, or document class.
         if(processAborted) return null;
 
         const currentKey = keys[keyIndex];
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${currentKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${currentKey}`;
 
         try {
             const response = await fetch(url, {

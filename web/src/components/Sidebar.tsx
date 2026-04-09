@@ -25,6 +25,7 @@ function classNames(...classes: string[]) {
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const unreadCount = 0; // TODO: wire up to real notification state
 
     return (
         <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">

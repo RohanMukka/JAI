@@ -1,93 +1,140 @@
-# JAI - Job Application Intelligence
+# JAI — Job Application Intelligence
 
-JAI is an automated tool designed to streamline the job application process by tailoring your resume to specific job descriptions using AI and automatically generating a professional PDF via Overleaf.
+AI-powered Chrome extension and Next.js dashboard that auto-tailors resumes to job descriptions using Google Gemini, with Overleaf LaTeX integration and one-click job application autofill.
 
-## 🚀 Features
+## Architecture
 
--   **AI-Powered Resume Optimization**: Uses Google Gemini to rewrite your resume content to match a specific Job Description (JD), highlighting relevant skills and experiences.
--   **Automated LaTeX Generation**: Converts the optimized content into a high-quality LaTeX resume.
--   **Overleaf Integration**: Automatically opens Overleaf, creates a new project, and injects the generated LaTeX code to compile a PDF.
--   **Web Dashboard**: A centralized hub to manage your master resume, user profile, and application history.
+```
+┌──────────────────┐      ┌──────────────────────────┐      ┌──────────────┐
+│  Chrome Extension│◄────►│  Next.js Web Dashboard   │◄────►│   MongoDB    │
+│  (Manifest V3)   │      │  (App Router + API Routes)│      │  (Atlas)     │
+└────────┬─────────┘      └────────────┬─────────────┘      └──────────────┘
+         │                             │
+         ▼                             ▼
+┌──────────────────┐      ┌──────────────────────────┐
+│  Google Gemini   │      │  Google OAuth (NextAuth)  │
+│  (Resume AI)     │      │  + Gmail API              │
+└──────────────────┘      └──────────────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Overleaf        │
+│  (LaTeX → PDF)   │
+└──────────────────┘
+```
 
-## 📂 Project Structure
+## Features
 
--   **`extension/`**: The Chrome Extension source code.
-    -   `manifest.json`: Extension configuration.
-    -   `popup/`: The extension popup UI.
-    -   `scripts/background.js`: Handles API calls to Gemini and orchestrates the automation.
-    -   `scripts/content_overleaf.js`: Automates the Overleaf interface (Project creation, code injection).
-    -   `scripts/content_jd.js`: Extracts text from Job Description pages.
--   **`web/`**: The Next.js Web Dashboard.
-    -   Built with Next.js 15+, Tailwind CSS, and MongoDB.
-    -   Handles User Authentication (NextAuth with Google).
-    -   Stores master resume data.
--   **`backend/`**: (Currently Unused) Python backend scaffolding.
+- **AI Resume Tailoring** — Gemini rewrites your LaTeX resume to match any job description, preserving layout and formatting while optimizing content for ATS systems.
+- **Overleaf Automation** — Auto-opens Overleaf, injects generated LaTeX, and triggers compilation for instant PDF download.
+- **Job Application Autofill** — Scans application forms and fills fields (name, email, education, demographics, work authorization) from your saved profile using fuzzy matching.
+- **API Key Rotation** — Extension supports multiple Gemini API keys with automatic failover on rate limits, countdown retry, and cancellation.
+- **Web Dashboard** — Full-stack Next.js app with Google OAuth, resume upload/parsing, job search (JSearch/RapidAPI), application tracking, and Gmail inbox scanning.
+- **Profile Management** — Onboarding flow captures education, work history, skills, and demographics. Data drives both the autofill engine and resume generation.
 
-## 🛠️ Setup Instructions
+## Project Structure
 
-### 1. Web Dashboard (Required for Profile Management)
+```
+extension/                    # Chrome Extension (Manifest V3)
+├── manifest.json             # Permissions, content scripts, service worker
+├── popup/                    # Side panel UI (login, automate, autofill)
+├── options/                  # Settings page (LaTeX resume editor)
+├── scripts/
+│   ├── background.js         # Service worker — Gemini API calls, key rotation
+│   ├── content_jd.js         # Extracts JD text from active tab
+│   ├── content_overleaf.js   # Automates Overleaf editor injection
+│   └── content_autofill.js   # Smart form-filling with field detection
+└── icons/
 
-The web dashboard is used to manage your "Master Resume" data which the extension uses as a base.
+web/                          # Next.js 16 Web Dashboard
+├── src/
+│   ├── app/
+│   │   ├── api/              # Server-side API routes
+│   │   │   ├── auth/         # NextAuth Google OAuth
+│   │   │   ├── profile/      # User profile CRUD
+│   │   │   ├── resume/       # Upload, parse, generate, view
+│   │   │   ├── sessions/     # Resume generation sessions
+│   │   │   ├── jobs/         # JSearch job search proxy
+│   │   │   ├── email/        # Gmail integration + AI scan
+│   │   │   └── onboarding/   # New user setup
+│   │   ├── dashboard/        # Protected pages (jobs, tracker, inbox, profile)
+│   │   ├── login/            # OAuth sign-in/sign-up
+│   │   └── onboarding/       # Multi-step profile setup
+│   ├── components/           # Sidebar, filters, editors, notifications
+│   ├── context/              # AI agent + application state
+│   └── lib/                  # MongoDB, Gemini, OpenRouter clients
+└── package.json
 
-1.  Navigate to the `web` directory:
-    ```bash
-    cd web
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  Configure Environment Variables:
-    Create a `.env.local` file in the `web` directory with the following keys:
-    ```env
-    google_client_id=YOUR_GOOGLE_CLIENT_ID
-    google_client_secret=YOUR_GOOGLE_CLIENT_SECRET
-    NEXTAUTH_SECRET=your_nextauth_secret
-    nextauth_url=http://localhost:3000
-    mongodb_uri=YOUR_MONGODB_CONNECTION_STRING
-    mongodb_db=jaidb
-    backend_url=http://localhost:3000
-    GOOGLE_API_KEY=YOUR_GEMINI_API_KEY
-    ```
-4.  Run the development server:
-    ```bash
-    npm run dev
-    ```
-    The dashboard will be available at `http://localhost:3000`.
+docs/                         # Project documentation
+└── devpost.md                # Hackathon submission writeup
+```
+
+## Setup
+
+### 1. Web Dashboard
+
+```bash
+cd web
+npm install
+```
+
+Create `web/.env.local`:
+```env
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+MONGODB_URI=your_mongodb_connection_string
+MONGODB_DB=jaidb
+GOOGLE_API_KEY=your_gemini_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key    # Optional — fallback model provider
+RAPIDAPI_KEY=your_rapidapi_key                # Optional — for JSearch job listings
+```
+
+```bash
+npm run dev
+# Dashboard at http://localhost:3000
+```
 
 ### 2. Chrome Extension
 
-1.  Navigate to the `extension` directory.
-2.  **Configuration**: Ensure `extension/scripts/config.js` exists and contains your Gemini API keys:
-    ```javascript
-    const JAI_CONFIG = {
-        API_KEYS: [
-            "YOUR_GEMINI_API_KEY_1",
-            "YOUR_GEMINI_API_KEY_2" // Optional rotation
-        ]
-    };
-    ```
-3.  **Install in Chrome**:
-    -   Open Chrome and go to `chrome://extensions`.
-    -   Enable "Developer mode" (top right).
-    -   Click "Load unpacked".
-    -   Select the `extension` folder.
+Create `extension/scripts/config.js` (gitignored):
+```javascript
+const JAI_CONFIG = {
+    API_KEYS: [
+        "YOUR_GEMINI_API_KEY_1",
+        "YOUR_GEMINI_API_KEY_2"  // Optional rotation key
+    ]
+};
+```
 
-## 📖 Usage Guide
+Load in Chrome:
+1. Navigate to `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked** → select the `extension/` folder
 
-1.  **Login**: Open the Web Dashboard (`http://localhost:3000`) and log in. Fill out your Master Resume profile.
-2.  **Connect Extension**: Open the JAI Extension popup. It should detect your login session from the web app.
-3.  **Find a Job**: Navigate to a job posting (e.g., LinkedIn, Indeed).
-4.  **Automate**:
-    -   Click the JAI Extension icon.
-    -   Click **"Automate"**.
-    -   JAI will extract the JD, send it to Gemini along with your Master Resume, and generate a tailored LaTeX version.
-5.  **Get PDF**:
-    -   JAI will automatically open Overleaf in a new tab.
-    -   It will create a blank project and paste the generated LaTeX code.
-    -   Review the PDF and download it!
+### Usage
 
-## 🔧 Troubleshooting
+1. **Login** — Open `http://localhost:3000` and sign in with Google. Complete the onboarding profile.
+2. **Configure Resume** — Open the extension settings and paste your LaTeX resume (a default template is pre-loaded).
+3. **Optimize** — Navigate to a job posting, open the JAI side panel, and click **Generate & Download PDF**. The extension extracts the JD, sends it to Gemini, and opens Overleaf with the tailored LaTeX.
+4. **Autofill** — On any job application form, click **Autofill Application** to auto-fill form fields from your profile.
 
--   **Extension connection issue**: Ensure the Web App is running on `localhost:3000` and you are logged in. The extension checks for cookies on `localhost`.
--   **Overleaf not pasting**: If the automation stops at Overleaf, click the JAI banner in the Overleaf tab to manually copy the code to your clipboard, then paste it into the editor.
+## Tech Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| Extension | Chrome Manifest V3, Service Workers, Content Scripts |
+| Frontend | Next.js 16, React 19, Tailwind CSS 4, Heroicons |
+| Backend | Next.js API Routes (serverless), NextAuth |
+| AI | Google Gemini 2.0 Flash, OpenRouter (fallback) |
+| Database | MongoDB Atlas |
+| Auth | Google OAuth 2.0, NextAuth.js |
+| PDF | Overleaf (LaTeX compilation) |
+| Jobs API | JSearch via RapidAPI |
+
+## Troubleshooting
+
+- **Extension not connecting** — Make sure the web app is running on `localhost:3000` and you're logged in. The extension detects the session via cookies.
+- **Overleaf not pasting** — Click the JAI status banner in the Overleaf tab to re-copy the LaTeX to your clipboard, then paste manually with `Ctrl+V`.
+- **Gemini 429 errors** — Add a second API key in `config.js` for automatic rotation. The extension retries with countdown on quota exhaustion.
